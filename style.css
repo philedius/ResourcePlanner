@@ -1,0 +1,122 @@
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+#container {
+    font-family: 'Segoe UI';
+    font-size: 12px;
+    width: 100vw;
+    height: 98vh;
+    box-sizing: border-box;
+    padding: 32px;
+}
+
+/*
+    Resource Planner Styling
+*/
+
+.resource-planner div {
+    display: flex;
+    box-sizing: border-box;
+}
+
+.resource-planner {
+    display: flex;
+    flex-direction: column;
+    /* margin: 32px; */
+    min-width: 800px;
+    max-height: 496px;
+    height: auto;
+    border: 1px solid #ddd;
+    overflow-y: hidden;
+    /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
+}
+
+.timeline-container {
+    display: flex;
+    flex-direction: row;
+    height: 48px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    z-index: 2;
+}
+
+.corner,
+.resources {
+    width: 200px;
+    max-width: 200px;
+}
+
+.corner {
+    border-right: 1px solid #eee;
+}
+
+.timeline {
+    flex-grow: 1;
+}
+
+.scrollbar-filler {
+    min-width: 17px;
+    max-width: 17px;
+    width: 17px;
+}
+
+/* Height is (100% - .timeline-container:height) */
+.scroll-container {
+    /* height: calc(500px - 50px); */
+    overflow-y: scroll;
+    display: flex;
+    flex-direction: row;
+}
+
+.resources {
+    flex-direction: column;
+    border-right: 1px solid #eee;
+}
+
+.grid {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.row {
+    height: 32px;
+    padding: .5rem 1rem;
+    width: 100%;
+    border-bottom: 1px solid #f4f4f4;
+    background: white;
+}
+
+.resources .row:nth-child(odd) {
+    background: #fcfcfc;
+}
+
+.grid .row:nth-child(even) {
+    background: #fcfcfc;
+}
+
+.content {
+    position: relative;
+    width: 100%;
+    /* height: 100%; */
+}
+
+.item {
+    position: absolute;
+    height: 32px;
+    align-items: center;
+    justify-content: start;
+    padding-left: 4px;
+    border-radius: 1px;
+    background: rgb(52, 177, 125);
+    color: white;
+    top: 0px;
+    left: 0px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.item:hover {
+    background: rgb(48, 165, 140);
+}
