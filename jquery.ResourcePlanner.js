@@ -49,15 +49,15 @@
         console.log('settings:\n', settings);
         
         setupTimeline(settings);
-        // setDimensions(settings);
         setupGrid(settings);
+        setDimensions(settings);
         
         handleWindowResize();
         // checkOverlap(0);
-        // var offset = 0;
-        // $('.resource').each(function(index) {
-        //     offset += checkOverlapInRow(index, offset);
-        // });
+        var offset = 0;
+        $('.resource').each(function(index) {
+            checkOverlapInRow(index);
+        });
         
         console.log('Setup time: ' + (performance.now() - p0).toFixed(2) + 'ms');
         return this; 
@@ -78,34 +78,79 @@
 
     // FIXME: I'm disgustingly broken
     // check every item of a row against every other item of the same row
-    function checkOverlapInRow(rowIndex, offset) {
+    function checkOverlapInRow(rowIndex) {
         var items = $('.item[data-y="' + rowIndex + '"]');
         // console.log(items);
         var highestCount = 0;
         for (var i = 0; i < items.length - 1; i++) {
             var count = 0;
             for (var j = i + 1; j < items.length; j++) {
-                var overlapping = isOverlapping(items[i], items[j]);
+                var overlapping = isOverlapping($(items[i]), $(items[j]));
                 if (overlapping) {
                     count += 1;
-                    if (count > highestCount) highestCount = count;
-                    $(items[i]).css('background', 'orange');
-                    $(items[j]).css('background', 'red');
-                    var newTopPos = parseFloat($(items[j]).css('top').replace('px', '')) + (unitHeight * (count + offset)) + 'px';
-                    $(items[j]).css('top', newTopPos);
+                    changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), 1);
+                    shiftItemsVertically($(items[j]), 1);
+                    setDimensions();
                 }
             }
         }
-        console.log(highestCount + 1);
-        $('.row[data-row-id="' + rowIndex + '"]').css('height', ((highestCount + 1 + offset) * unitHeight) + 'px');
-        return highestCount;
+        // $('.row[data-row-id="' + rowIndex + '"]').css('height', ((highestCount + 1 + offset) * unitHeight) + 'px');
     }
 
-    function isOverlapping(a, b) {
-        var aStart = $(a).data('x');
-        var aEnd = aStart + $(a).data('width');
-        var bStart = $(b).data('x');
-        var bEnd = bStart + $(b).data('width');
+    /**
+     * Changes height of row by a certain amount of units
+     * @param {jQuery object} $row 
+     * @param {integer} units 
+     * 
+     */
+    function changeRowHeight($row, units) {
+        var currentHeight = parseFloat($row.css('height').replace('px', ''));
+        var newHeight = Math.round(currentHeight + (unitHeight * units));
+        $row.css({
+            'min-height': newHeight,
+            'height': newHeight,
+            'max-height': newHeight
+        });
+    }
+
+    /**
+     * Shifts an item vertically by a certain amount of units
+     * @param {jQuery object} $item 
+     * @param {integer} units 
+     */
+    function shiftItemVertically($item, units) {
+        var currentTopPosition = parseFloat($item.css('top').replace('px', ''));
+        var newTopPosition = currentTopPosition + (unitHeight * units);
+        $item.css('top', newTopPosition);
+    }
+
+    /**
+     *  Shifts $startingItem and all items in rows below it vertically by a certain amount of units
+     * @param {integer} $startingItem 
+     * @param {integer} units 
+     */
+    function shiftItemsVertically($startingItem, units) {
+        var startingRow = $startingItem.data('y') + 1;
+        var lastRow = $('.resource:last').data('row-id');
+        shiftItemVertically($startingItem, units)
+        for (var i = startingRow; i <= lastRow; i++) {
+            $('.item[data-y="' + i + '"]').each(function() {
+                shiftItemVertically($(this), units);
+            });
+        }
+    }
+
+    /**
+     * Returns true if two given items are overlapping.
+     * (Essentially a 1-dimensional collision detection)
+     * @param {*} $a 
+     * @param {*} $b 
+     */
+    function isOverlapping($a, $b) {
+        var aStart = $a.data('x');
+        var aEnd = aStart + $a.data('width');
+        var bStart = $b.data('x');
+        var bEnd = bStart + $b.data('width');
         if (aStart > bStart && aStart < bEnd) return true;
         if (bStart > aStart && bStart < aEnd) return true;
         if (aStart === bStart) return true;
@@ -151,13 +196,13 @@
     function setDimensions(settings) {
         
         // if (settings.size.width) $planner.css('width', settings.size.width + 'px');
-        if (settings.size.height) $planner.css('max-height', settings.size.height + 'px');
+        // if (settings.size.height) $planner.css('max-height', settings.size.height + 'px');
 
         $scrollContainer.css({
-            'max-height': (settings.size.height - $timelineContainer.outerHeight()) + 'px'
+            'max-height': (unitHeight - $timelineContainer.outerHeight()) + 'px'
         });
-        $resources.css('height', (settings.data.resources.length * unitHeight) + 'px');
-        $grid.css('height', (settings.data.resources.length * unitHeight) + 'px');
+        $resources.css('height', ($('.resource').length * unitHeight) + 'px');
+        $grid.css('height', ($('.resource').length * unitHeight) + 'px');
     }
 
     function setupItemHTML(item, id) {

@@ -103,7 +103,9 @@ html, body {
 }
 
 .row {
+    min-height: 32px;
     height: 32px;
+    max-height: 32px;
     padding: .5rem 1rem;
     width: 100%;
     border-bottom: 1px solid #f4f4f4;
