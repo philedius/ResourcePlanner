@@ -5,11 +5,9 @@ html, body {
 
 #container {
     font-family: 'Segoe UI';
+    /* height: 1000px; */
     font-size: 12px;
-    width: 100vw;
-    height: 98vh;
     box-sizing: border-box;
-    /* padding: 32px; */
 }
 
 /*
@@ -26,9 +24,8 @@ html, body {
     flex-direction: column;
     margin: 32px;
     box-sizing: border-box;
-    min-width: 800px;
+    /* min-width: 800px; */
     max-height: 496px;
-    height: auto;
     border: 1px solid #ddd;
     overflow-y: hidden;
     /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
@@ -134,6 +131,7 @@ html, body {
     padding-left: 4px;
     border-radius: 1px;
     background: rgb(52, 177, 125);
+    border: 1px solid rgb(33, 109, 90);
     color: white;
     top: 0px;
     left: 0px;

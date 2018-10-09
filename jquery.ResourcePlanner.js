@@ -7,6 +7,7 @@
     var $scrollbarFill;
     var $resources;
     var $grid;
+    var $content;
     var timelineSubdivisions;
     var unitWidth;
     var unitHeight = 32;
@@ -76,25 +77,30 @@
         });
     }
 
-    // FIXME: I'm disgustingly broken
+
+
     // check every item of a row against every other item of the same row
     function checkOverlapInRow(rowIndex) {
         var items = $('.item[data-y="' + rowIndex + '"]');
-        // console.log(items);
-        var highestCount = 0;
+        var totalOverlapping = 0;
+        var highestStack = 0;
         for (var i = 0; i < items.length - 1; i++) {
             var count = 0;
             for (var j = i + 1; j < items.length; j++) {
                 var overlapping = isOverlapping($(items[i]), $(items[j]));
                 if (overlapping) {
                     count += 1;
-                    changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), 1);
-                    shiftItemsVertically($(items[j]), 1);
-                    setDimensions();
                 }
+                if (count > 0) shiftItemsVertically($(items[j]), 1);
             }
+            if (count > highestStack) highestStack = count;
+            totalOverlapping += count;
         }
-        // $('.row[data-row-id="' + rowIndex + '"]').css('height', ((highestCount + 1 + offset) * unitHeight) + 'px');
+        if (totalOverlapping > 0) {
+            console.log(totalOverlapping, highestStack);
+            changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestStack);
+            setDimensions();
+        }
     }
 
     /**
@@ -157,11 +163,12 @@
         return false;
     }
 
+
     function setupTimeline(settings) {
         switch (settings.timeline.viewType) {
             case 'month':
                 timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-                unitWidth = $timeline.width() / timelineSubdivisions;
+                unitWidth = $timeline.outerWidth() / timelineSubdivisions;
                 $timeline.append('<div class="month">' + settings.timeline.viewStart.format('MMMM') + '</div><div class="day-container"></div>');
                 var daysHTML = '';
                 for(var i = 0; i < timelineSubdivisions; i++) {
@@ -185,35 +192,60 @@
             $grid.append('<div class="row grid-row" data-row-id="' + resource.id + '"></div>');
         }
         
-        var $content = $grid.find('.content');
-        var itemsHTML = '';
-        for (var i = 0; i < items.length; i++) {
-           itemsHTML += setupItemHTML(items[i], i);
-        }
-        $content.append(itemsHTML);
+        $content = $grid.find('.content');
+        setupItems(items);
     }
 
     function setDimensions(settings) {
-        
-        // if (settings.size.width) $planner.css('width', settings.size.width + 'px');
-        // if (settings.size.height) $planner.css('max-height', settings.size.height + 'px');
-
-        $scrollContainer.css({
-            'max-height': (unitHeight - $timelineContainer.outerHeight()) + 'px'
-        });
-        $resources.css('height', ($('.resource').length * unitHeight) + 'px');
-        $grid.css('height', ($('.resource').length * unitHeight) + 'px');
+        var scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
+        var resourceHeight = getResourceHeight();
+        $scrollContainer.css('max-height', scrollContainerHeight + 'px');
+        $resources.css('height', resourceHeight + 'px');
+        $grid.css('height', resourceHeight + 'px');
     }
 
-    function setupItemHTML(item, id) {
+    function getResourceHeight() {
+        var resourceHeight = 0;
+        $('.resource').each(function() {
+            resourceHeight += $(this).outerHeight();
+        });
+        return resourceHeight;
+    }
+
+    function buildItemHTML(item, id) {
         var timespan = item.endDate.diff(item.startDate, 'days');
         var rowIndex = $('.resource[data-row-id="' + item.responsible.id + '"]').index();
         var top = (rowIndex * unitHeight) + 'px';
         var left = (item.startDate.date() * unitWidth) + 'px';
         var width = (timespan * unitWidth) + 'px';
         var style = 'top: ' + top + '; left: ' + left + '; width: ' + width + ';';
-        var html =  '<div class="item" data-x="' + item.startDate.date() + '" data-y="' + rowIndex + '" data-width="' + timespan + '" data-resource-id="' + item.responsible.id + '" data-id="' + id + '" style="' + style + '">' + item.title + '</div>';
+        var itemContent = '<div class="item-content">' + item.title + '</div>'
+        var html =  '<div class="item" data-x="' + item.startDate.date() + '" data-y="' + rowIndex + '" data-width="' + timespan + '" data-resource-id="' + item.responsible.id + '" data-id="' + id + '" style="' + style + '">' + itemContent + '</div>';
         return html;
+    }
+
+    function setupItems(items) {
+        var itemsHTML = '';
+        for (var i = 0; i < items.length; i++) {
+           itemsHTML += buildItemHTML(items[i], i);
+        }
+        $content.append(itemsHTML);
+        $('.item').on('click', function(e) {
+            var id = $(this).data('id');
+            console.log(items[id]);
+        });
+
+        $('.item').on('mouseenter', function(e) {
+            var id = $(this).data('id');
+            console.log($(this).data('resource-id'));
+        });
+
+        // $('.item').on('mouseout', function(e) {
+        //     var event = e.toElement || e.relatedTarget;
+        //     if (event.parentNode === this || e === this) {
+        //         return;
+        //     }
+        // });
     }
 
 })(jQuery);
