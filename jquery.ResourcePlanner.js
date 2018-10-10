@@ -11,15 +11,15 @@
     var timelineSubdivisions;
     var unitWidth;
     var unitHeight = 32;
+    var resources;
+    var items;
 
     $.fn.ResourcePlanner = function(options) {
-        var p0 = performance.now();
         $planner = this;
-
         $planner.addClass('resource-planner');
         $planner.append('<div class="timeline-container"><div class="corner"></div><div class="timeline"></div><div class="scrollbar-filler"></div></div>');
         $planner.append('<div class="scroll-container"><div class="resources"></div><div class="grid"></div></div>');
-        
+
         $timelineContainer = $planner.find('.timeline-container');
         $scrollContainer = $planner.find('.scroll-container');
         $corner = $planner.find('.corner');
@@ -27,13 +27,13 @@
         $scrollbarFill = $planner.find('.scrollbarFill');
         $resources = $planner.find('.resources');
         $grid = $planner.find('.grid');
-
+        
         var settings = $.extend({
             resizable: true,
             draggable: true,
             overlap: true,
             size: {
-                height: 496
+                height: 800
             },
             timeline: {
                 viewType: 'month',
@@ -43,24 +43,26 @@
             data: {
                 resources: [],
                 items: []
-
+                
             }
         }, options);
-
+        
         console.log('settings:\n', settings);
+        if (settings.data.resources) resources = settings.data.resources;
+        if (settings.data.items) items = settings.data.items;
+        var setupTimeStart = performance.now();
         
         setupTimeline(settings);
         setupGrid(settings);
         setDimensions(settings);
         
         handleWindowResize();
-        // checkOverlap(0);
-        var offset = 0;
+        
         $('.resource').each(function(index) {
             checkOverlapInRow(index);
         });
         
-        console.log('Setup time: ' + (performance.now() - p0).toFixed(2) + 'ms');
+        console.log('Setup time: ' + (performance.now() - setupTimeStart).toFixed(2) + 'ms');
         return this; 
     }
 
@@ -77,10 +79,72 @@
         });
     }
 
+    function checkOverlapInRow(index) {
+        var rowItems = $('.item[data-y="' + index + '"]').map(function() { return { id: $(this).data('id'), subRow: 0 } });
+        rowItems.sort(function(a, b) {
+            if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
+            if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
+            return 0;
+        });
+        var collisionsInRow = [];
+        for (var i = 0; i < rowItems.length; i++) {
+            var currentId = rowItems[i].id;
+            var count = 0;
+            var collisions = [];
+            for (var j = 0; j < rowItems.length; j++) {
+                if (i === j) {
+                    collisions.push(currentId);
+                    continue;
+                }
+                overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
+                // console.log(index, currentId, overlapping);
+                if (overlapping) {
+                    count += 1;
+                    // collisions.push(rowItems[j]);
+                    collisions.push(rowItems[j].id);
+                }
+            }
+            if (collisions.length > 1) collisionsInRow.push(collisions);
+            $('.item[data-id="' + currentId + '"] .item-content').text(currentId + ' (' + count + ')');
+            if (count === 0) $('.item[data-id="' + currentId + '"]').css('background-color', 'rgb(200, 200, 200)')
+        }
 
+        // console.log(collisionsInRow);
+        
+        // console.log(rowItems, collisionsInRow);
+        for (var i = 0; i < collisionsInRow.length; i++) {
+            var collision = collisionsInRow[i];
+            var currentSubRow = 0;
+            for (var j = 1; j < collision.length; j++) {
+                var currentItem = _.find(rowItems, ['id', collision[j]]);
+                var previousItem = _.find(rowItems, ['id', collision[j-1]]);
+                currentItem.subRow += currentSubRow;
+                if (currentItem.subRow === previousItem.subRow) {
+                    currentSubRow += 1;
+                    currentItem.subRow += 1;
+                }
+                // if (_.find(rowItems, ['subRow', collision[j]]).subRow === rowItems[collision[j-1]].subRow) rowItems[collision[j]].subRow += 1;
+            }
+        }
+        if (rowItems.length > 0) {
+            console.log(rowItems);
+            console.log(collisionsInRow);
+        }
+        var highestSubRow = 0;
+        $.each(rowItems, function(index, item) {
+            if (item.subRow !== 0) {
+                if (item.subRow > highestSubRow) highestSubRow = item.subRow;
+                var currentTop = parseFloat($('.item[data-id="' + item.id + '"]').css('top').replace('px', ''));
+                var newTop = currentTop + (unitHeight * item.subRow);
+                $('.item[data-id="' + item.id + '"]').css('top', newTop + 'px');
+            }
+        });
+
+
+    }
 
     // check every item of a row against every other item of the same row
-    function checkOverlapInRow(rowIndex) {
+    function checkOverlapInRowOLD(rowIndex) {
         var items = $('.item[data-y="' + rowIndex + '"]');
         var totalOverlapping = 0;
         var highestStack = 0;
@@ -97,7 +161,6 @@
             totalOverlapping += count;
         }
         if (totalOverlapping > 0) {
-            console.log(totalOverlapping, highestStack);
             changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestStack);
             setDimensions();
         }
@@ -146,13 +209,27 @@
         }
     }
 
+    function isOverlapping(a, b) {
+        var aStart = a.startDate;
+        var aEnd = a.endDate;
+        var bStart = b.startDate;
+        var bEnd = b.endDate;
+        var startsSame = aStart.isSame(bStart);
+        var endsSame = aEnd.isSame(bEnd);
+        if (startsSame || endsSame) return true;
+        if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
+        if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
+        if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
+        return false;
+    }
+
     /**
      * Returns true if two given items are overlapping.
      * (Essentially a 1-dimensional collision detection)
      * @param {*} $a 
      * @param {*} $b 
      */
-    function isOverlapping($a, $b) {
+    function isOverlappingOLD($a, $b) {
         var aStart = $a.data('x');
         var aEnd = aStart + $a.data('width');
         var bStart = $b.data('x');
@@ -224,21 +301,27 @@
         return html;
     }
 
+    var colors = ['green', 'crimson', 'purple', 'salmon', 'navy', 'steelblue', 'orange']
+
     function setupItems(items) {
         var itemsHTML = '';
         for (var i = 0; i < items.length; i++) {
            itemsHTML += buildItemHTML(items[i], i);
         }
         $content.append(itemsHTML);
+        $('.item').each(function() {
+            $(this).css('background-color', colors[Math.floor(Math.random() * colors.length)])
+        });
+
         $('.item').on('click', function(e) {
             var id = $(this).data('id');
             console.log(items[id]);
         });
 
-        $('.item').on('mouseenter', function(e) {
-            var id = $(this).data('id');
-            console.log($(this).data('resource-id'));
-        });
+        // $('.item').on('mouseenter', function(e) {
+        //     var id = $(this).data('id');
+        //     console.log($(this).data('resource-id'));
+        // });
 
         // $('.item').on('mouseout', function(e) {
         //     var event = e.toElement || e.relatedTarget;

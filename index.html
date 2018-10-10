@@ -21,6 +21,7 @@
 <script src="jquery-ui-1.12.1/jquery-ui.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
 <script src="dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
 <script src="jquery.ResourcePlanner.js"></script>
 <script>
     var firstNames = ['Jeff', 'Alex', 'Vinny', 'Ryan', 'Abby', 'Drew', 'Brad', 'Patrick', 'Dan', 'Jason', 'Jan', 'Austin', 'Ben', 'Dave', 'Brett', 'Danny', 'Matthew'];
@@ -30,7 +31,7 @@
     var people = [];
     var events = [];
     
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < 10; i++) {
         var firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         var lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         people.push({
@@ -39,13 +40,14 @@
         });
     }
 
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 5; i++) {
         var startDate = 1 + Math.floor(Math.random() * 20);
         var endDate = 1 + startDate + Math.floor(Math.random() * 8);
         
         events.push({
             title: eventTitles[i % eventTitles.length],
-            responsible: people[i % people.length],
+            // responsible: people[i % people.length],
+            responsible: people[0],
             startDate: dayjs('2018/10/' + startDate),
             endDate: dayjs('2018/10/' + endDate)
         });

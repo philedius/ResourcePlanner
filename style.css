@@ -25,7 +25,8 @@ html, body {
     margin: 32px;
     box-sizing: border-box;
     /* min-width: 800px; */
-    max-height: 496px;
+    /* max-height: calc(100vh - 100px); */
+    max-height: 800px;
     border: 1px solid #ddd;
     overflow-y: hidden;
     /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
@@ -35,6 +36,7 @@ html, body {
     display: flex;
     flex-direction: row;
     height: 64px;
+    min-height: 64px;
     background: white;
     border-bottom: 1px solid #ddd;
     z-index: 2;
@@ -131,16 +133,16 @@ html, body {
     padding-left: 4px;
     border-radius: 1px;
     background: rgb(52, 177, 125);
-    border: 1px solid rgb(33, 109, 90);
     color: white;
     top: 0px;
     left: 0px;
+    opacity: .4;
     cursor: pointer;
     overflow: hidden;
     user-select: none;
 }
 
 .item:hover {
-    background: rgb(48, 165, 140);
+    background-color: rgb(41, 41, 41) !important;
     z-index: 10;
 }
