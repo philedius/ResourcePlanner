@@ -31,7 +31,7 @@
     var people = [];
     var events = [];
     
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 20; i++) {
         var firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         var lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         people.push({
@@ -40,14 +40,13 @@
         });
     }
 
-    for (var i = 0; i < 10  ; i++) {
+    for (var i = 0; i < 50; i++) {
         var startDate = 1 + Math.floor(Math.random() * 20);
-        var endDate = 1 + startDate + Math.floor(Math.random() * 8);
+        var endDate = 2 + startDate + Math.floor(Math.random() * (29 - startDate));
         
         events.push({
             title: eventTitles[i % eventTitles.length],
-            // responsible: people[i % people.length],
-            responsible: people[0],
+            responsible: people[i % people.length],
             startDate: dayjs('2018/10/' + startDate),
             endDate: dayjs('2018/10/' + endDate)
         });

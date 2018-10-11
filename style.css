@@ -131,12 +131,12 @@ html, body {
     align-items: center;
     justify-content: start;
     padding-left: 4px;
-    border-radius: 1px;
+    border-radius: 5px;
     background: rgb(52, 177, 125);
     color: white;
     top: 0px;
     left: 0px;
-    opacity: .4;
+    opacity: .7;
     cursor: pointer;
     overflow: hidden;
     user-select: none;
@@ -145,4 +145,8 @@ html, body {
 .item:hover {
     background-color: rgb(41, 41, 41) !important;
     z-index: 10;
+}
+
+.highlight {
+    background-color: pink !important;
 }

@@ -54,13 +54,12 @@
         
         setupTimeline(settings);
         setupGrid(settings);
+        handleOverlap();
         setDimensions(settings);
         
         handleWindowResize();
         
-        $('.resource').each(function(index) {
-            checkOverlapInRow(index);
-        });
+       
         
         console.log('Setup time: ' + (performance.now() - setupTimeStart).toFixed(2) + 'ms');
         return this; 
@@ -79,57 +78,92 @@
         });
     }
 
-    function checkOverlapInRow(index) {
-        var rowItems = $('.item[data-y="' + index + '"]').map(function() { return { id: $(this).data('id'), subRow: 0 } });
+    function handleOverlap() {
+        $('.resource').each(function(index) {
+            checkOverlapInRow(index);
+        });
+        shiftItemsDown();
+    }
+
+    function checkOverlapInRow(rowIndex) {
+        var rowItems = $('.item[data-y="' + rowIndex + '"]').map(function() { return { id: $(this).data('id'), subRow: 0 } });
+        if (rowItems.length < 2) return;
+        // TODO: Sort items that have same start date by size. Then by id.
         rowItems.sort(function(a, b) {
             if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
             if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
             return 0;
         });
-        var collisionsInRow = [];
+        var collisions = [];
         for (var i = 0; i < rowItems.length; i++) {
             var currentId = rowItems[i].id;
             var count = 0;
-            var collisions = [];
+            var colliders = [];
             for (var j = 0; j < rowItems.length; j++) {
                 if (i === j) {
-                    collisions.push(currentId);
+                    colliders.push(currentId);
                     continue;
                 }
                 overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
-                // console.log(index, currentId, overlapping);
                 if (overlapping) {
                     count += 1;
-                    // collisions.push(rowItems[j]);
-                    collisions.push(rowItems[j].id);
+                    colliders.push(rowItems[j].id);
                 }
             }
-            if (collisions.length > 1) collisionsInRow.push(collisions);
+
+            var colors = [
+                '#000000',
+                '#10031a',
+                '#28052d',
+                '#420738',
+                '#5d0a3a',
+                '#741134',
+                '#851c2a',
+                '#902a1d',
+                '#933c11',
+                '#8e510a',
+                '#856809',
+                '#797f0f',
+                '#6c941e',
+                '#62a734',
+                '#5cb650',
+                '#5bc270',
+                '#5bc270',
+                '#5bc270',
+                '#5bc270',
+                '#5bc270',
+                '#5bc270',
+                '#5bc270',
+            ]
+
+            if (colliders.length > 1) collisions.push({ owner: currentId, colliders: colliders });
             $('.item[data-id="' + currentId + '"] .item-content').text(currentId + ' (' + count + ')');
-            if (count === 0) $('.item[data-id="' + currentId + '"]').css('background-color', 'rgb(200, 200, 200)')
+            $('.item[data-id="' + currentId + '"]').css('background-color', colors[count])
         }
 
-        // console.log(collisionsInRow);
         
-        // console.log(rowItems, collisionsInRow);
-        for (var i = 0; i < collisionsInRow.length; i++) {
-            var collision = collisionsInRow[i];
-            var currentSubRow = 0;
-            for (var j = 1; j < collision.length; j++) {
-                var currentItem = _.find(rowItems, ['id', collision[j]]);
-                var previousItem = _.find(rowItems, ['id', collision[j-1]]);
-                currentItem.subRow += currentSubRow;
-                if (currentItem.subRow === previousItem.subRow) {
-                    currentSubRow += 1;
-                    currentItem.subRow += 1;
+        for (var i = 0; i < collisions.length; i++) {
+            var owner = collisions[i].owner;
+            var colliders = collisions[i].colliders;
+            
+            for (var j = 0; j < colliders.length; j++) {
+                var collider = colliders[j];
+                if (owner !== collider) {
+                    var ownerItem = _.find(rowItems, ['id', owner]);
+                    var colliderItem = _.find(rowItems, ['id', collider]);
+                    if (ownerItem.subRow === colliderItem.subRow) {
+                        if (colliders.indexOf(owner) > colliders.indexOf(collider)) {
+                            ownerItem.subRow += 1;
+                            j = -1;
+                        } else {
+                            colliderItem.subRow += 1;
+                            j = 0;
+                        }
+                    }
                 }
-                // if (_.find(rowItems, ['subRow', collision[j]]).subRow === rowItems[collision[j-1]].subRow) rowItems[collision[j]].subRow += 1;
             }
         }
-        if (rowItems.length > 0) {
-            console.log(rowItems);
-            console.log(collisionsInRow);
-        }
+        
         var highestSubRow = 0;
         $.each(rowItems, function(index, item) {
             if (item.subRow !== 0) {
@@ -139,30 +173,32 @@
                 $('.item[data-id="' + item.id + '"]').css('top', newTop + 'px');
             }
         });
-
+        changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestSubRow);
+        // shiftRowsBelow(rowIndex, highestSubRow);
 
     }
 
-    // check every item of a row against every other item of the same row
-    function checkOverlapInRowOLD(rowIndex) {
-        var items = $('.item[data-y="' + rowIndex + '"]');
-        var totalOverlapping = 0;
-        var highestStack = 0;
-        for (var i = 0; i < items.length - 1; i++) {
-            var count = 0;
-            for (var j = i + 1; j < items.length; j++) {
-                var overlapping = isOverlapping($(items[i]), $(items[j]));
-                if (overlapping) {
-                    count += 1;
-                }
-                if (count > 0) shiftItemsVertically($(items[j]), 1);
-            }
-            if (count > highestStack) highestStack = count;
-            totalOverlapping += count;
+    function shiftItemsDown() {
+        var totalOffset = 0;
+        for (var i = 1; i < $('.resource').length; i++) {
+            var offset = (parseFloat($('.resource[data-row-id="' + (i - 1) + '"]').css('height').replace('px', '')) / unitHeight) - 1;
+            totalOffset += offset;
+            $('.item[data-y="' + i + '"]').each(function() {
+                shiftItemVertically($(this), totalOffset);
+            });
         }
-        if (totalOverlapping > 0) {
-            changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestStack);
-            setDimensions();
+    }
+
+    // Shifts all rows below a certain row by n-1 units, where n is that row's number of subrows(therefore if
+    // that row has only 1 subrow, there is no shift).
+    function shiftRowsBelow(index, units) {
+        if (units <= 0) return;
+        var startingRow = index + 1;
+        var lastRow = $('.resource:last').data('row-id');
+        for (var i = startingRow; i <= lastRow; i++) {
+            $('.item[data-y="' + i + '"]').each(function() {
+                shiftItemVertically($(this), units);
+            });
         }
     }
 
@@ -188,25 +224,31 @@
      * @param {integer} units 
      */
     function shiftItemVertically($item, units) {
-        var currentTopPosition = parseFloat($item.css('top').replace('px', ''));
-        var newTopPosition = currentTopPosition + (unitHeight * units);
+        var currentTopPosition = getTopPosition($item);
+        var newTopPosition = (currentTopPosition + (unitHeight * units)) + 'px';
         $item.css('top', newTopPosition);
     }
 
-    /**
-     *  Shifts $startingItem and all items in rows below it vertically by a certain amount of units
-     * @param {integer} $startingItem 
-     * @param {integer} units 
-     */
-    function shiftItemsVertically($startingItem, units) {
-        var startingRow = $startingItem.data('y') + 1;
-        var lastRow = $('.resource:last').data('row-id');
-        shiftItemVertically($startingItem, units)
-        for (var i = startingRow; i <= lastRow; i++) {
-            $('.item[data-y="' + i + '"]').each(function() {
-                shiftItemVertically($(this), units);
-            });
-        }
+    // /**
+    //  *  Shifts $startingItem and all items in rows below it vertically by a certain amount of units
+    //  * @param {integer} $startingItem 
+    //  * @param {integer} units 
+    //  */
+    // function shiftItemsVertically($startingItem, units) {
+    //     var startingRow = $startingItem.data('y') + 1;
+    //     var lastRow = $('.resource:last').data('row-id');
+    //     shiftItemVertically($startingItem, units)
+    //     for (var i = startingRow; i <= lastRow; i++) {
+    //         $('.item[data-y="' + i + '"]').each(function() {
+    //             shiftItemVertically($(this), units);
+    //         });
+    //     }
+    // }
+
+    
+
+    function getTopPosition($item) {
+        return parseFloat($item.css('top').replace('px', ''));
     }
 
     function isOverlapping(a, b) {
@@ -263,13 +305,19 @@
         var resources = settings.data.resources;
         var items = settings.data.items;
         $grid.append('<div class="content"></div>');
+        $content = $grid.find('.content');
+        var resourcesHTML = '';
+        var gridHTML = '';
         for (var i = 0; i < resources.length; i++) {
             var resource = resources[i];
-            $resources.append('<div class="row resource" data-row-id="' + resource.id + '">' + resource.name + '</div>');
-            $grid.append('<div class="row grid-row" data-row-id="' + resource.id + '"></div>');
+            resourcesHTML += '<div class="row resource" data-row-id="' + resource.id + '">' + resource.name + '</div>';
+            gridHTML += '<div class="row grid-row" data-row-id="' + resource.id + '"></div>';
         }
+
+        $resources.append(resourcesHTML);
+        $grid.append(gridHTML);
         
-        $content = $grid.find('.content');
+
         setupItems(items);
     }
 
@@ -316,19 +364,18 @@
         $('.item').on('click', function(e) {
             var id = $(this).data('id');
             console.log(items[id]);
+            checkOverlapInRow($(this).data('y'));
         });
 
-        // $('.item').on('mouseenter', function(e) {
-        //     var id = $(this).data('id');
-        //     console.log($(this).data('resource-id'));
-        // });
+        $('.item').on('mouseenter', function(e) {
+            var id = $(this).data('id');
+            $('.row.resource[data-row-id="'+items[id].responsible.id+'"]').addClass('highlight');
+            console.log();
+        });
 
-        // $('.item').on('mouseout', function(e) {
-        //     var event = e.toElement || e.relatedTarget;
-        //     if (event.parentNode === this || e === this) {
-        //         return;
-        //     }
-        // });
+        $('.item').on('mouseleave', function(e) {
+            $('.row.resource').removeClass('highlight');
+        });
     }
 
 })(jQuery);
