@@ -13,6 +13,7 @@
     var unitHeight = 32;
     var resources;
     var items;
+    var colors = ['#000000','#10031a','#28052d','#420738','#5d0a3a','#741134','#851c2a','#902a1d','#933c11','#8e510a','#856809','#797f0f','#6c941e','#62a734','#5cb650','#5bc270','#5bc270','#5bc270','#5bc270','#5bc270','#5bc270','#5bc270',]
 
     $.fn.ResourcePlanner = function(options) {
         $planner = this;
@@ -111,31 +112,6 @@
                 }
             }
 
-            var colors = [
-                '#000000',
-                '#10031a',
-                '#28052d',
-                '#420738',
-                '#5d0a3a',
-                '#741134',
-                '#851c2a',
-                '#902a1d',
-                '#933c11',
-                '#8e510a',
-                '#856809',
-                '#797f0f',
-                '#6c941e',
-                '#62a734',
-                '#5cb650',
-                '#5bc270',
-                '#5bc270',
-                '#5bc270',
-                '#5bc270',
-                '#5bc270',
-                '#5bc270',
-                '#5bc270',
-            ]
-
             if (colliders.length > 1) collisions.push({ owner: currentId, colliders: colliders });
             $('.item[data-id="' + currentId + '"] .item-content').text(currentId + ' (' + count + ')');
             $('.item[data-id="' + currentId + '"]').css('background-color', colors[count])
@@ -168,36 +144,22 @@
         $.each(rowItems, function(index, item) {
             if (item.subRow !== 0) {
                 if (item.subRow > highestSubRow) highestSubRow = item.subRow;
-                var currentTop = parseFloat($('.item[data-id="' + item.id + '"]').css('top').replace('px', ''));
+                var currentTop = $('.item[data-id="' + item.id + '"]').position().top;
                 var newTop = currentTop + (unitHeight * item.subRow);
                 $('.item[data-id="' + item.id + '"]').css('top', newTop + 'px');
             }
         });
         changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestSubRow);
-        // shiftRowsBelow(rowIndex, highestSubRow);
 
     }
 
     function shiftItemsDown() {
         var totalOffset = 0;
         for (var i = 1; i < $('.resource').length; i++) {
-            var offset = (parseFloat($('.resource[data-row-id="' + (i - 1) + '"]').css('height').replace('px', '')) / unitHeight) - 1;
+            var offset = ($('.resource[data-row-id="' + (i - 1) + '"]').outerHeight() / unitHeight) - 1;
             totalOffset += offset;
             $('.item[data-y="' + i + '"]').each(function() {
                 shiftItemVertically($(this), totalOffset);
-            });
-        }
-    }
-
-    // Shifts all rows below a certain row by n-1 units, where n is that row's number of subrows(therefore if
-    // that row has only 1 subrow, there is no shift).
-    function shiftRowsBelow(index, units) {
-        if (units <= 0) return;
-        var startingRow = index + 1;
-        var lastRow = $('.resource:last').data('row-id');
-        for (var i = startingRow; i <= lastRow; i++) {
-            $('.item[data-y="' + i + '"]').each(function() {
-                shiftItemVertically($(this), units);
             });
         }
     }
@@ -209,7 +171,8 @@
      * 
      */
     function changeRowHeight($row, units) {
-        var currentHeight = parseFloat($row.css('height').replace('px', ''));
+        // var currentHeight = parseFloat($row.css('height').replace('px', ''));
+        var currentHeight = $row.outerHeight();
         var newHeight = Math.round(currentHeight + (unitHeight * units));
         $row.css({
             'min-height': newHeight,
@@ -224,31 +187,9 @@
      * @param {integer} units 
      */
     function shiftItemVertically($item, units) {
-        var currentTopPosition = getTopPosition($item);
+        var currentTopPosition = $item.position().top;
         var newTopPosition = (currentTopPosition + (unitHeight * units)) + 'px';
         $item.css('top', newTopPosition);
-    }
-
-    // /**
-    //  *  Shifts $startingItem and all items in rows below it vertically by a certain amount of units
-    //  * @param {integer} $startingItem 
-    //  * @param {integer} units 
-    //  */
-    // function shiftItemsVertically($startingItem, units) {
-    //     var startingRow = $startingItem.data('y') + 1;
-    //     var lastRow = $('.resource:last').data('row-id');
-    //     shiftItemVertically($startingItem, units)
-    //     for (var i = startingRow; i <= lastRow; i++) {
-    //         $('.item[data-y="' + i + '"]').each(function() {
-    //             shiftItemVertically($(this), units);
-    //         });
-    //     }
-    // }
-
-    
-
-    function getTopPosition($item) {
-        return parseFloat($item.css('top').replace('px', ''));
     }
 
     function isOverlapping(a, b) {
@@ -264,24 +205,6 @@
         if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
         return false;
     }
-
-    /**
-     * Returns true if two given items are overlapping.
-     * (Essentially a 1-dimensional collision detection)
-     * @param {*} $a 
-     * @param {*} $b 
-     */
-    function isOverlappingOLD($a, $b) {
-        var aStart = $a.data('x');
-        var aEnd = aStart + $a.data('width');
-        var bStart = $b.data('x');
-        var bEnd = bStart + $b.data('width');
-        if (aStart > bStart && aStart < bEnd) return true;
-        if (bStart > aStart && bStart < aEnd) return true;
-        if (aStart === bStart) return true;
-        return false;
-    }
-
 
     function setupTimeline(settings) {
         switch (settings.timeline.viewType) {
@@ -317,7 +240,6 @@
         $resources.append(resourcesHTML);
         $grid.append(gridHTML);
         
-
         setupItems(items);
     }
 
@@ -349,17 +271,12 @@
         return html;
     }
 
-    var colors = ['green', 'crimson', 'purple', 'salmon', 'navy', 'steelblue', 'orange']
-
     function setupItems(items) {
         var itemsHTML = '';
         for (var i = 0; i < items.length; i++) {
            itemsHTML += buildItemHTML(items[i], i);
         }
         $content.append(itemsHTML);
-        $('.item').each(function() {
-            $(this).css('background-color', colors[Math.floor(Math.random() * colors.length)])
-        });
 
         $('.item').on('click', function(e) {
             var id = $(this).data('id');
