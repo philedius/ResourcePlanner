@@ -168,13 +168,15 @@
         $.each(rowItems, function(index, item) {
             if (item.subRow !== 0) {
                 if (item.subRow > highestSubRow) highestSubRow = item.subRow;
-                var currentTop = parseFloat($('.item[data-id="' + item.id + '"]').css('top').replace('px', ''));
+                var currentTop = $('.item[data-id="' + item.id + '"]').position().top;
                 var newTop = currentTop + (unitHeight * item.subRow);
                 $('.item[data-id="' + item.id + '"]').css('top', newTop + 'px');
+            } else {
+                var currentTop = $('.item[data-id="' + item.id + '"]').position().top; 
+                console.log(currentTop, $('.row[data-row-id="' + rowIndex + '"]').position().top - $('.timeline-container').position().top);
             }
         });
         changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), highestSubRow);
-        // shiftRowsBelow(rowIndex, highestSubRow);
 
     }
 
