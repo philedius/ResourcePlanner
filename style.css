@@ -142,6 +142,10 @@ html, body {
     user-select: none;
 }
 
+.row-items {
+    position: absolute;
+}
+
 .item:hover {
     background-color: rgb(41, 41, 41) !important;
     z-index: 10;
