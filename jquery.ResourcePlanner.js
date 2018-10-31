@@ -78,31 +78,41 @@
         });
     }
 
-    function handleOverlap() {
-        $('.resource').each(function (index) {
-            checkOverlapInRow(index);
-        });
+    function handleOverlap(rowIndex) {
+        if (rowIndex) {
+            checkOverlapInRow(rowIndex); 
+        } else {
+            console.log('yo');
+            $('.resource').each(function (index) {
+                checkOverlapInRow(index);
+            });
+        }
         setRowItemsPositions();
-        // shiftItemsDown();
     }
 
     function setRowItemsPositions() {
         var resourceContainerTop = $('.resources').position().top;
-        $('.row-items').each(function(index, item) {
-            var rowId = $(item).data('row-id');
+        $('.row-items').each(function(index, rowItem) {
+            var rowId = $(rowItem).data('row-id');
             var top = $('.resource[data-row-id="' + rowId + '"]').position().top - resourceContainerTop;
-            $(item).css('top', top);
+            $(rowItem).css('top', top);
         });
     }
-
     function checkOverlapInRow(rowIndex) {
         var rowItems = $('.item[data-y="' + rowIndex + '"]').map(function () {
+        // var rowItems = $('.row-items[data-row-id="' + rowIndex + '"] .item').map(function () {
             return {
                 id: $(this).data('id'),
                 subRow: 0
             }
         });
-        if (rowItems.length < 2) return;
+        if (rowItems.length < 2) {
+            // Row contains 1 or 0 items, therefore no need to check for collisions.
+            // Height is set to 1 in case the row used to contain more items.
+            changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), 1);
+            return;
+        }
+
         // TODO: Sort items that have same start date by size. Then by id.
         rowItems.sort(function (a, b) {
             if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
@@ -159,25 +169,13 @@
         $.each(rowItems, function (index, item) {
             if (item.subRow !== 0) {
                 if (item.subRow > highestSubRow) highestSubRow = item.subRow;
-                var currentTop = 0;
-                var newTop = currentTop + (unitHeight * item.subRow);
-                $('.item[data-id="' + item.id + '"]').css('top', newTop + 'px');
+                var newTop = (unitHeight * item.subRow);
+                $('.item[data-id="' + item.id + '"]').css('top', newTop);
             }
         });
         var heightInUnits = highestSubRow + 1;
         changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), heightInUnits);
 
-    }
-
-    function shiftItemsDown() {
-        var totalOffset = 0;
-        for (var i = 1; i < $('.resource').length; i++) {
-            var offset = ($('.resource[data-row-id="' + (i - 1) + '"]').outerHeight() / unitHeight) - 1;
-            totalOffset += offset;
-            $('.item[data-y="' + i + '"]').each(function () {
-                shiftItemVertically($(this), totalOffset);
-            });
-        }
     }
 
     /**
@@ -193,17 +191,8 @@
             'height': newHeight,
             'max-height': newHeight
         });
-    }
-
-    /**
-     * Shifts an item vertically by a certain amount of units
-     * @param {jQuery object} $item 
-     * @param {integer} units 
-     */
-    function shiftItemVertically($item, units) {
-        var currentTopPosition = $item.position().top;
-        var newTopPosition = (currentTopPosition + (unitHeight * units)) + 'px';
-        $item.css('top', newTopPosition);
+        // var rowId = $row.data('row-id');
+        // $('.row-items[data-row-id="' + rowId + '"]').css('height', newHeight);
     }
 
     function isOverlapping(a, b) {
@@ -311,18 +300,51 @@
 
         $('.item').on('click', function (e) {
             var id = $(this).data('id');
-            console.log(items[id]);
+            var rowIndex = $(this).data('y');
+            // handleOverlap();
+            // console.log(items[id]);
             
         });
 
         $('.item').on('mouseenter', function (e) {
             var id = $(this).data('id');
-            $('.row.resource[data-row-id="' + items[id].responsible.id + '"]').addClass('highlight');
+            $('.row.resource[data-row-id="' + $(this).data('resource-id') + '"]').addClass('highlight');
         });
 
         $('.item').on('mouseleave', function (e) {
             $('.row.resource').removeClass('highlight');
         });
+
+        $('.item').draggable({
+            grid: [unitWidth, unitHeight],
+            stop: handleItemDragging
+        })
+    }
+
+    function handleItemDragging(event, ui) {
+        handleHorizontalItemDragging(event, ui);
+        handleVerticalItemDragging(event, ui);
+    }
+
+    function handleHorizontalItemDragging(event, ui) {
+        // TODO: Change dates (or change data-x and use that as a comparator in collision checking instead? To be continued...)
+        // Maybe both the horizontal and vertical functions should return a boolean describing whether move requires a collision check?
+    }
+
+    function handleVerticalItemDragging(event, ui) {
+        var yMoveDirection = ui.position.top - ui.originalPosition.top;
+        var $item = $(event.target);
+        var $parent = $item.parent();
+        console.log(event, ui);
+        var parentTop = $parent.position().top;
+        var parentBottom = parentTop + $('.resource[data-row-id="' + $parent.data('row-id') + '"]').outerHeight();
+        var itemTopInParentContext = $parent.position().top + $item.position().top;
+        console.log(parentTop, parentBottom, itemTopInParentContext);
+        if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
+            // Item is in same row.
+            $item.css('top', ui.originalPosition.top);
+            handleOverlap();
+        }
     }
 
 })(jQuery);
