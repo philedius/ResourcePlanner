@@ -33,7 +33,7 @@
             draggable: true,
             overlap: true,
             size: {
-                height: 800
+                height: 600
             },
             timeline: {
                 viewType: 'month',
@@ -65,6 +65,8 @@
         return this;
     }
 
+    // NOTE: When window width is resized the draggable grid needs to be reinitialized if
+    // items are draggable.
     function handleWindowResize() {
         $(window).on('resize', function () {
             unitWidth = $grid.width() / timelineSubdivisions;
@@ -82,7 +84,6 @@
         if (rowIndex) {
             checkOverlapInRow(rowIndex); 
         } else {
-            console.log('yo');
             $('.resource').each(function (index) {
                 checkOverlapInRow(index);
             });
@@ -98,16 +99,17 @@
             $(rowItem).css('top', top);
         });
     }
+
     function checkOverlapInRow(rowIndex) {
-        var rowItems = $('.item[data-y="' + rowIndex + '"]').map(function () {
-        // var rowItems = $('.row-items[data-row-id="' + rowIndex + '"] .item').map(function () {
+        var rowItems = $('.row-items[data-row-id="' + rowIndex + '"] .item').map(function () {
             return {
                 id: $(this).data('id'),
                 subRow: 0
             }
         });
+
         if (rowItems.length < 2) {
-            // Row contains 1 or 0 items, therefore no need to check for collisions.
+            // Row contains 1 or 0 items, therefore there is no need to check for collisions.
             // Height is set to 1 in case the row used to contain more items.
             changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), 1);
             return;
@@ -122,7 +124,6 @@
         var collisions = [];
         for (var i = 0; i < rowItems.length; i++) {
             var currentId = rowItems[i].id;
-            var count = 0;
             var colliders = [];
             for (var j = 0; j < rowItems.length; j++) {
                 if (i === j) {
@@ -131,7 +132,6 @@
                 }
                 overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
                 if (overlapping) {
-                    count += 1;
                     colliders.push(rowItems[j].id);
                 }
             }
@@ -265,25 +265,20 @@
     function buildItemHTML(item, id) {
         var timespan = item.endDate.diff(item.startDate, 'days');
         var rowIndex = $('.resource[data-row-id="' + item.responsible.id + '"]').index();
-        // var top = (rowIndex * unitHeight) + 'px';
-        var top = '0px';
         var left = (item.startDate.date() * unitWidth) + 'px';
         var width = (timespan * unitWidth) + 'px';
-        var style = 'top: ' + top + '; left: ' + left + '; width: ' + width + ';';
+        var style = 'left: ' + left + '; width: ' + width + ';';
         var itemContent = '<div class="item-content">' + item.title + '</div>'
         var html = '<div class="item" data-x="' + item.startDate.date() + '" data-y="' + rowIndex + '" data-width="' + timespan + '" data-resource-id="' + item.responsible.id + '" data-id="' + id + '" style="' + style + '">' + itemContent + '</div>';
         return html;
     }
 
     function setupItems(items) {
-        console.log(items);
-        var itemsHTML = '';
         var rowItems = {};
         for (var i = 0; i < items.length; i++) {
             var rowId = items[i].responsible.id;
             if (!rowItems[rowId]) rowItems[rowId] = [];
             var itemHTML = buildItemHTML(items[i], i);
-            itemsHTML += itemHTML;
             rowItems[rowId].push(itemHTML);
         }
 
@@ -295,14 +290,10 @@
             rowItemsHTML += '</div>'
         })
 
-        // $content.append(itemsHTML);
         $content.append(rowItemsHTML);
 
         $('.item').on('click', function (e) {
             var id = $(this).data('id');
-            var rowIndex = $(this).data('y');
-            // handleOverlap();
-            // console.log(items[id]);
             
         });
 
@@ -321,6 +312,8 @@
         })
     }
 
+    //  TODO: Collision detection should only be done on the item container losing
+    // an item and the one gaining an item.
     function handleItemDragging(event, ui) {
         handleHorizontalItemDragging(event, ui);
         handleVerticalItemDragging(event, ui);
@@ -332,14 +325,16 @@
     }
 
     function handleVerticalItemDragging(event, ui) {
+        console.log(event, ui);
         var yMoveDirection = ui.position.top - ui.originalPosition.top;
         var $item = $(event.target);
         var $parent = $item.parent();
-        console.log(event, ui);
+        
+        
         var parentTop = $parent.position().top;
         var parentBottom = parentTop + $('.resource[data-row-id="' + $parent.data('row-id') + '"]').outerHeight();
         var itemTopInParentContext = $parent.position().top + $item.position().top;
-        console.log(parentTop, parentBottom, itemTopInParentContext);
+        
         if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
             // Item is in same row.
             $item.css('top', ui.originalPosition.top);
