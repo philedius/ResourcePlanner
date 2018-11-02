@@ -261,6 +261,7 @@
         });
         return resourceHeight;
     }
+    
 
     function buildItemHTML(item, id) {
         var timespan = item.endDate.diff(item.startDate, 'days');
