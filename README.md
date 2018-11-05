@@ -1,0 +1,6 @@
+# ResourcePlanner
+
+```
+npm install
+gulp
+```
