@@ -1,18 +1,18 @@
 (function ($) {
-    var $planner;
-    var $timelineContainer;
-    var $scrollContainer;
-    var $corner;
-    var $timeline;
-    var $scrollbarFill;
-    var $resources;
-    var $grid;
-    var $content;
-    var timelineSubdivisions;
-    var unitWidth;
-    var unitHeight = 32;
-    var resources;
-    var items;
+    let $planner;
+    let $timelineContainer;
+    let $scrollContainer;
+    let $corner;
+    let $timeline;
+    let $scrollbarFill;
+    let $resources;
+    let $grid;
+    let $content;
+    let timelineSubdivisions;
+    let unitWidth;
+    let unitHeight = 32;
+    let resources;
+    let items;
 
     $.fn.ResourcePlanner = function (options) {
         $planner = this;
@@ -28,7 +28,7 @@
         $resources = $planner.find('.resources');
         $grid = $planner.find('.grid');
 
-        var settings = $.extend({
+        let settings = $.extend({
             resizable: true,
             draggable: true,
             overlap: true,
@@ -50,7 +50,7 @@
         console.log('settings:\n', settings);
         if (settings.data.resources) resources = settings.data.resources;
         if (settings.data.items) items = settings.data.items;
-        var setupTimeStart = performance.now();
+        let setupTimeStart = performance.now();
 
         setupTimeline(settings);
         setupGrid(settings);
@@ -60,8 +60,8 @@
         handleWindowResize();
 
 
-
-        console.log('Setup time: ' + (performance.now() - setupTimeStart).toFixed(2) + 'ms');
+ 
+        console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
         return this;
     }
 
@@ -92,18 +92,18 @@
     }
 
     function setRowItemsPositions() {
-        var resourceContainerTop = $('.resources').position().top;
+        let resourceContainerTop = $('.resources').position().top;
         $('.row-items').each(function(index, rowItem) {
-            var rowId = $(rowItem).data('row-id');
-            var top = $('.resource[data-row-id="' + rowId + '"]').position().top - resourceContainerTop;
+            let rowId = $(rowItem).data('row-id');
+            let top = $(`.resource[data-row-id="${rowId}"]`).position().top - resourceContainerTop;
             $(rowItem).css('top', top);
         });
     }
 
     function checkOverlapInRow(rowIndex) {
-        var rowItems = $('.row-items[data-row-id="' + rowIndex + '"] .item').map(function () {
+        let rowItems = $(`.row-items[data-row-id="${rowIndex}"] .item`).map((index, item) => {
             return {
-                id: $(this).data('id'),
+                id: $(item).data('id'),
                 subRow: 0
             }
         });
@@ -111,7 +111,7 @@
         if (rowItems.length < 2) {
             // Row contains 1 or 0 items, therefore there is no need to check for collisions.
             // Height is set to 1 in case the row used to contain more items.
-            changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), 1);
+            changeRowHeight($(`.row[data-row-id="${rowIndex}"]`), 1);
             return;
         }
 
@@ -121,37 +121,34 @@
             if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
             return 0;
         });
-        var collisions = [];
-        for (var i = 0; i < rowItems.length; i++) {
-            var currentId = rowItems[i].id;
-            var colliders = [];
-            for (var j = 0; j < rowItems.length; j++) {
+        let collisions = [];
+        for (let i = 0; i < rowItems.length; i++) {
+            let currentId = rowItems[i].id;
+            let colliders = [];
+            for (let j = 0; j < rowItems.length; j++) {
                 if (i === j) {
                     colliders.push(currentId);
                     continue;
                 }
-                overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
+                let overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
                 if (overlapping) {
                     colliders.push(rowItems[j].id);
                 }
             }
-
             if (colliders.length > 1) collisions.push({
                 owner: currentId,
                 colliders: colliders
             });
         }
 
-
-        for (var i = 0; i < collisions.length; i++) {
-            var owner = collisions[i].owner;
-            var colliders = collisions[i].colliders;
-
-            for (var j = 0; j < colliders.length; j++) {
-                var collider = colliders[j];
+        for (let i = 0; i < collisions.length; i++) {
+            let owner = collisions[i].owner;
+            let colliders = collisions[i].colliders
+            for (let j = 0; j < colliders.length; j++) {
+                let collider = colliders[j];
                 if (owner !== collider) {
-                    var ownerItem = _.find(rowItems, ['id', owner]);
-                    var colliderItem = _.find(rowItems, ['id', collider]);
+                    let ownerItem = _.find(rowItems, ['id', owner]);
+                    let colliderItem = _.find(rowItems, ['id', collider]);
                     if (ownerItem.subRow === colliderItem.subRow) {
                         if (colliders.indexOf(owner) > colliders.indexOf(collider)) {
                             ownerItem.subRow += 1;
@@ -165,16 +162,16 @@
             }
         }
 
-        var highestSubRow = 0;
+        let highestSubRow = 0;
         $.each(rowItems, function (index, item) {
             if (item.subRow !== 0) {
                 if (item.subRow > highestSubRow) highestSubRow = item.subRow;
-                var newTop = (unitHeight * item.subRow);
-                $('.item[data-id="' + item.id + '"]').css('top', newTop);
+                let newTop = (unitHeight * item.subRow);
+                $(`.item[data-id="${item.id}"]`).css('top', newTop);
             }
         });
-        var heightInUnits = highestSubRow + 1;
-        changeRowHeight($('.row[data-row-id="' + rowIndex + '"]'), heightInUnits);
+        let heightInUnits = highestSubRow + 1;
+        changeRowHeight($(`.row[data-row-id="${rowIndex}"]`), heightInUnits);
 
     }
 
@@ -185,23 +182,21 @@
      * 
      */
     function changeRowHeight($row, units) {
-        var newHeight = unitHeight * units;
+        let newHeight = unitHeight * units;
         $row.css({
             'min-height': newHeight,
             'height': newHeight,
             'max-height': newHeight
         });
-        // var rowId = $row.data('row-id');
-        // $('.row-items[data-row-id="' + rowId + '"]').css('height', newHeight);
     }
 
     function isOverlapping(a, b) {
-        var aStart = a.startDate;
-        var aEnd = a.endDate;
-        var bStart = b.startDate;
-        var bEnd = b.endDate;
-        var startsSame = aStart.isSame(bStart);
-        var endsSame = aEnd.isSame(bEnd);
+        let aStart = a.startDate;
+        let aEnd = a.endDate;
+        let bStart = b.startDate;
+        let bEnd = b.endDate;
+        let startsSame = aStart.isSame(bStart);
+        let endsSame = aEnd.isSame(bEnd);
         if (startsSame || endsSame) return true;
         if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
         if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
@@ -214,10 +209,10 @@
             case 'month':
                 timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
                 unitWidth = $timeline.outerWidth() / timelineSubdivisions;
-                $timeline.append('<div class="month">' + settings.timeline.viewStart.format('MMMM') + '</div><div class="day-container"></div>');
-                var daysHTML = '';
-                for (var i = 0; i < timelineSubdivisions; i++) {
-                    daysHTML += '<div class="day" data-index="' + i + '" style="width: ' + unitWidth + 'px;">' + (i + 1) + '</div>';
+                $timeline.append(`<div class="month">${settings.timeline.viewStart.format('MMMM')}</div><div class="day-container"></div>`);
+                let daysHTML = '';
+                for (let i = 0; i < timelineSubdivisions; i++) {
+                    daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;">${i + 1}</div>`;
                 }
                 $timeline.find('.day-container').append(daysHTML);
                 break;
@@ -228,16 +223,16 @@
     }
 
     function setupGrid(settings) {
-        var resources = settings.data.resources;
-        var items = settings.data.items;
+        let resources = settings.data.resources;
+        let items = settings.data.items;
         $grid.append('<div class="content"></div>');
         $content = $grid.find('.content');
-        var resourcesHTML = '';
-        var gridHTML = '';
-        for (var i = 0; i < resources.length; i++) {
-            var resource = resources[i];
-            resourcesHTML += '<div class="row resource" data-row-id="' + resource.id + '">' + resource.name + '</div>';
-            gridHTML += '<div class="row grid-row" data-row-id="' + resource.id + '"></div>';
+        let resourcesHTML = '';
+        let gridHTML = '';
+        for (let i = 0; i < resources.length; i++) {
+            let resource = resources[i];
+            resourcesHTML += `<div class="row resource" data-row-id="${resource.id}">${resource.name}</div>`;
+            gridHTML += `<div class="row grid-row" data-row-id="${resource.id}"></div>`;
         }
 
         $resources.append(resourcesHTML);
@@ -247,15 +242,15 @@
     }
 
     function setDimensions(settings) {
-        var scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
-        var resourceHeight = getResourceHeight();
-        $scrollContainer.css('max-height', scrollContainerHeight + 'px');
-        $resources.css('height', resourceHeight + 'px');
-        $grid.css('height', resourceHeight + 'px');
+        let scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
+        let resourceHeight = getResourceHeight();
+        $scrollContainer.css('max-height', scrollContainerHeight);
+        $resources.css('height', resourceHeight);
+        $grid.css('height', resourceHeight);
     }
 
     function getResourceHeight() {
-        var resourceHeight = 0;
+        let resourceHeight = 0;
         $('.resource').each(function () {
             resourceHeight += $(this).outerHeight();
         });
@@ -264,29 +259,29 @@
     
 
     function buildItemHTML(item, id) {
-        var timespan = item.endDate.diff(item.startDate, 'days');
-        var rowIndex = $('.resource[data-row-id="' + item.responsible.id + '"]').index();
-        var left = (item.startDate.date() * unitWidth) + 'px';
-        var width = (timespan * unitWidth) + 'px';
-        var style = 'left: ' + left + '; width: ' + width + ';';
-        var itemContent = '<div class="item-content">' + item.title + '</div>'
-        var html = '<div class="item" data-x="' + item.startDate.date() + '" data-y="' + rowIndex + '" data-width="' + timespan + '" data-resource-id="' + item.responsible.id + '" data-id="' + id + '" style="' + style + '">' + itemContent + '</div>';
+        let timespan = item.endDate.diff(item.startDate, 'days');
+        let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
+        let left = `${item.startDate.date() * unitWidth}px`;
+        let width = `${timespan * unitWidth}px`;
+        let style = `left: ${left}; width: ${width};`;
+        let itemContent = `<div class="item-content">${item.title}</div>`
+        let html = `<div class="item" data-x="${item.startDate.date()}" data-y="${rowIndex}" data-width="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
 
     function setupItems(items) {
-        var rowItems = {};
-        for (var i = 0; i < items.length; i++) {
-            var rowId = items[i].responsible.id;
+        let rowItems = {};
+        for (let i = 0; i < items.length; i++) {
+            let rowId = items[i].responsible.id;
             if (!rowItems[rowId]) rowItems[rowId] = [];
-            var itemHTML = buildItemHTML(items[i], i);
+            let itemHTML = buildItemHTML(items[i], i);
             rowItems[rowId].push(itemHTML);
         }
 
-        var rowItemsHTML = '';
+        let rowItemsHTML = '';
 
         $.each(rowItems, function(id, array) {
-            rowItemsHTML += '<div class="row-items" data-row-id="' + id + '">';
+            rowItemsHTML += `<div class="row-items" data-row-id="${id}">`;
             rowItemsHTML += array.join('');
             rowItemsHTML += '</div>'
         })
@@ -294,13 +289,13 @@
         $content.append(rowItemsHTML);
 
         $('.item').on('click', function (e) {
-            var id = $(this).data('id');
+            let id = $(this).data('id');
             
         });
 
         $('.item').on('mouseenter', function (e) {
-            var id = $(this).data('id');
-            $('.row.resource[data-row-id="' + $(this).data('resource-id') + '"]').addClass('highlight');
+            let id = $(this).data('id');
+            $(`.row.resource[data-row-id="${$(this).data('resource-id')}"]`).addClass('highlight');
         });
 
         $('.item').on('mouseleave', function (e) {
@@ -327,14 +322,14 @@
 
     function handleVerticalItemDragging(event, ui) {
         console.log(event, ui);
-        var yMoveDirection = ui.position.top - ui.originalPosition.top;
-        var $item = $(event.target);
-        var $parent = $item.parent();
+        let yMoveDirection = ui.position.top - ui.originalPosition.top;
+        let $item = $(event.target);
+        let $parent = $item.parent();
         
         
-        var parentTop = $parent.position().top;
-        var parentBottom = parentTop + $('.resource[data-row-id="' + $parent.data('row-id') + '"]').outerHeight();
-        var itemTopInParentContext = $parent.position().top + $item.position().top;
+        let parentTop = $parent.position().top;
+        let parentBottom = parentTop + $(`.resource[data-row-id="${$parent.data('row-id')}"]`).outerHeight();
+        let itemTopInParentContext = $parent.position().top + $item.position().top;
         
         if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
             // Item is in same row.

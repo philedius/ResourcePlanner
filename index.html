@@ -6,9 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Resource Planner</title>
-    <link rel="stylesheet" href="jquery-ui-1.12.1/jquery-ui.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.css" />
-    <link rel="stylesheet" href="style.css">
+    <!-- <link rel="stylesheet" href="src/jquery-ui-1.12.1/jquery-ui.min.css"> -->
+    <link rel="stylesheet" href="src/style.css">
 </head>
 
 <body>
@@ -18,15 +17,15 @@
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="jquery-ui-1.12.1/jquery-ui.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-modal/0.9.1/jquery.modal.min.js"></script>
-<script src="dayjs.min.js"></script>
+<script src="src/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+<script src="src/dayjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.11/lodash.min.js"></script>
-<script src="jquery.ResourcePlanner.js"></script>
+<script src="dist/jquery.ResourcePlanner.js"></script>
 <script>
     var firstNames = ['Jeff', 'Alex', 'Vinny', 'Ryan', 'Abby', 'Drew', 'Brad', 'Patrick', 'Dan', 'Jason', 'Jan', 'Austin', 'Ben', 'Dave', 'Brett', 'Danny', 'Matthew'];
     var lastNames = ['Gerstmann', 'Navarro', 'Caravella', 'Davis', 'Russell', 'Scanlon', 'Shoemaker', 'Klepek', 'Ryckert', 'Oestreicher', 'Ochoa', 'Walker', 'Pack', 'Snider', 'Bakalar', 'O\'Dwyer', 'Rorie'];
     var eventTitles = ['Dance-off with Big Mike', 'Saving the world', 'Buying milk', 'Ruining Christmas', 'Watching movie', 'Showing off Yu-Gi-Oh collection', 'Playing Sing Star on PS2', 'Moving mountains', 'Delivering babies', 'Assassinating [REDACTED]', 'Doing the needful', 'Poopin\'', 'Taking out the trash', 'Basking in glory', 'Brooding', 'Vacation in Flavor Town', 'Taking Axl Rose down to the Paradise City', 'Straight up clowning', 'Writing a diss track', 'Dropping beats', 'Fastening seatbelt', '"Enjoying" Mario Party 3', 'Fighting dinosaurs', 'Looking for John Cena', 'Crashing a party', 'Ushering souls', 'Soul searching', 'Procrastinating', 'Writing placeholder text', 'Framing Roger the Rabbit', 'On a business trip down memory lane', 'Being because of thinking', 'Pressing F to pay his/hers respects', 'Living in the sunlight', 'Loving in the moonlight'];
+    // var eventTitles = ['Some task', 'Another task', 'Working on something', 'Working on that']
 
     var people = [];
     var events = [];
