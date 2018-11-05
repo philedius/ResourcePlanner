@@ -70,8 +70,6 @@
 
         handleWindowResize();
 
-
- 
         console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
         return this;
     }
@@ -283,19 +281,17 @@
             rowItems[rowId].push(itemHTML);
         }
 
-        // TODO: Need to create row item containers for all rows. This doesn't include empty rows
         $.each(rowItems, (id, array) => {
             $(`.row-items[data-row-id="${id}"]`).append(array.join(''));
         })
 
         $('.item').on('click', (e) => {
             let id = $(this).data('id');
-            
         });
 
         $('.item').on('mouseenter', (e) => {
-            let id = $(this).data('id');
-            $(`.row.resource[data-row-id="${$(this).data('resource-id')}"]`).addClass('highlight');
+            let $target = $(e.currentTarget);
+            $(`.row.resource[data-row-id="${$target.data('resource-id')}"]`).addClass('highlight');
         });
 
         $('.item').on('mouseleave', (e) => {
@@ -308,8 +304,6 @@
         })
     }
 
-    //  TODO: Collision detection should only be done on the item container losing
-    // an item and the one gaining an item.
     function handleItemDragging(event, ui) {
         handleHorizontalItemDragging(event, ui);
         handleVerticalItemDragging(event, ui);
@@ -327,15 +321,18 @@
         let parentTop = $parent.position().top;
         let parentBottom = parentTop + $(`.resource[data-row-id="${$parent.data('row-id')}"]`).outerHeight();
         let itemTopInParentContext = $parent.position().top + $item.position().top;
-        if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) { // Item still in parent row
+        if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
+            // Item is still in parent row
             $item.css('top', ui.originalPosition.top);
-        } else if (itemTopInParentContext >= parentBottom) { // Item is in a row below parent
+        } else if (itemTopInParentContext >= parentBottom) {
+            // Item is in a row below parent
             let $newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), 1);
             setParent($item, $newParent);
             $item.css('top', 0);
             handleOverlap($parent.index());
             handleOverlap($newParent.index());
-        } else if (itemTopInParentContext < parentTop) { // Item is in a row above parent
+        } else if (itemTopInParentContext < parentTop) { 
+            // Item is in a row above parent
             let $newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), -1);
             setParent($item, $newParent);
             $item.css('top', 0);
@@ -344,9 +341,9 @@
         }
     }
 
-    // Find new parent based on item position. Start by checking closest parent in the direction
-    // that the item was moved. Then checks the next and so and and so forth, until the correct
-    // parent is found.
+    // Recursively find new parent based on item position. Start by checking closest parent in the
+    // direction that the item was moved. Then checks the next and so and and so forth, until the 
+    // correct parent is found.
     function findNewParent(itemTop, parentId, direction) {
         let candidateId = parentId + direction;
         let $candidate = $(`.row-items[data-row-id="${candidateId}"]`);
@@ -363,6 +360,7 @@
 
     function setParent($item, $parent) {
         $parent.append($item);
+        $item.data('resource-id', $parent.data('row-id'));
         $item.css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
     }
 

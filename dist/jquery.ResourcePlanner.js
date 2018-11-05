@@ -279,8 +279,7 @@
       if (!rowItems[rowId]) rowItems[rowId] = [];
       var itemHTML = buildItemHTML(items[i], i);
       rowItems[rowId].push(itemHTML);
-    } // TODO: Need to create row item containers for all rows. This doesn't include empty rows
-
+    }
 
     $.each(rowItems, function (id, array) {
       $(".row-items[data-row-id=\"".concat(id, "\"]")).append(array.join(''));
@@ -289,8 +288,8 @@
       var id = $(_this).data('id');
     });
     $('.item').on('mouseenter', function (e) {
-      var id = $(_this).data('id');
-      $(".row.resource[data-row-id=\"".concat($(_this).data('resource-id'), "\"]")).addClass('highlight');
+      var $target = $(e.currentTarget);
+      $(".row.resource[data-row-id=\"".concat($target.data('resource-id'), "\"]")).addClass('highlight');
     });
     $('.item').on('mouseleave', function (e) {
       $('.row.resource').removeClass('highlight');
@@ -299,9 +298,7 @@
       grid: [unitWidth, unitHeight],
       stop: handleItemDragging
     });
-  } //  TODO: Collision detection should only be done on the item container losing
-  // an item and the one gaining an item.
-
+  }
 
   function handleItemDragging(event, ui) {
     handleHorizontalItemDragging(event, ui);
@@ -321,7 +318,7 @@
     var itemTopInParentContext = $parent.position().top + $item.position().top;
 
     if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
-      // Item still in parent row
+      // Item is still in parent row
       $item.css('top', ui.originalPosition.top);
     } else if (itemTopInParentContext >= parentBottom) {
       // Item is in a row below parent
@@ -339,9 +336,9 @@
       handleOverlap($parent.index());
       handleOverlap(_$newParent.index());
     }
-  } // Find new parent based on item position. Start by checking closest parent in the direction
-  // that the item was moved. Then checks the next and so and and so forth, until the correct
-  // parent is found.
+  } // Recursively find new parent based on item position. Start by checking closest parent in the
+  // direction that the item was moved. Then checks the next and so and and so forth, until the 
+  // correct parent is found.
 
 
   function findNewParent(itemTop, parentId, direction) {
@@ -361,6 +358,7 @@
 
   function setParent($item, $parent) {
     $parent.append($item);
+    $item.data('resource-id', $parent.data('row-id'));
     $item.css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
   }
 })(jQuery);
