@@ -15,6 +15,7 @@
   var unitHeight = 32;
   var resources;
   var items;
+  var settings;
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
@@ -28,7 +29,7 @@
     $scrollbarFill = $planner.find('.scrollbarFill');
     $resources = $planner.find('.resources');
     $grid = $planner.find('.grid');
-    var settings = $.extend({
+    settings = $.extend({
       resizable: true,
       draggable: true,
       overlap: true,
@@ -44,7 +45,8 @@
       data: {
         resources: [],
         items: []
-      }
+      },
+      palette: ['hsl(206, 92%, 46%)', 'hsl(360, 67%, 51%)', 'hsl(193, 9%, 19%)', 'hsl(39, 97%, 71%)', 'hsl(247, 74%, 63%)', 'hsl(168, 100%, 36%)']
     }, options);
     console.log('settings:\n', settings);
     if (settings.data.resources) resources = settings.data.resources;
@@ -52,7 +54,9 @@
     var setupTimeStart = performance.now();
     setupTimeline(settings);
     setupGrid(settings);
+    var collisionTimeStart = performance.now();
     handleOverlap();
+    console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
     setDimensions(settings);
     handleWindowResize();
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
@@ -64,9 +68,9 @@
   function handleWindowResize() {
     $(window).on('resize', function () {
       unitWidth = $grid.width() / timelineSubdivisions;
-      $('.item').each(function () {
-        $(this).css('width', $(this).data('width') * unitWidth);
-        $(this).css('left', $(this).data('x') * unitWidth);
+      $('.item').each(function (index, item) {
+        $(item).css('width', Math.floor($(item).data('width') * unitWidth));
+        $(item).css('left', Math.floor($(item).data('x') * unitWidth));
       });
       $('.day').css('width', unitWidth);
     });
@@ -99,15 +103,7 @@
         id: $(item).data('id'),
         subRow: 0
       };
-    });
-
-    if (rowItems.length < 2) {
-      // Row contains 1 or 0 items, therefore there is no need to check for collisions.
-      // Height is set to 1 in case the row used to contain more items.
-      changeRowHeight($(".row[data-row-id=\"".concat(rowIndex, "\"]")), 1);
-      return;
-    } // TODO: Sort items that have same start date by size. Then by id.
-
+    }); // TODO: Sort items that have same start date by size. Then by id.
 
     rowItems.sort(function (a, b) {
       if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
@@ -166,11 +162,9 @@
 
     var highestSubRow = 0;
     $.each(rowItems, function (index, item) {
-      if (item.subRow !== 0) {
-        if (item.subRow > highestSubRow) highestSubRow = item.subRow;
-        var newTop = unitHeight * item.subRow;
-        $(".item[data-id=\"".concat(item.id, "\"]")).css('top', newTop);
-      }
+      if (item.subRow > highestSubRow) highestSubRow = item.subRow;
+      var newTop = unitHeight * item.subRow;
+      $(".item[data-id=\"".concat(item.id, "\"]")).css('top', newTop);
     });
     var heightInUnits = highestSubRow + 1;
     changeRowHeight($(".row[data-row-id=\"".concat(rowIndex, "\"]")), heightInUnits);
@@ -210,7 +204,7 @@
     switch (settings.timeline.viewType) {
       case 'month':
         timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
+        unitWidth = Math.round($timeline.outerWidth() / timelineSubdivisions);
         $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
         var daysHTML = '';
 
@@ -233,15 +227,18 @@
     $content = $grid.find('.content');
     var resourcesHTML = '';
     var gridHTML = '';
+    var rowItemsHTML = '';
 
     for (var i = 0; i < resources.length; i++) {
       var resource = resources[i];
       resourcesHTML += "<div class=\"row resource\" data-row-id=\"".concat(resource.id, "\">").concat(resource.name, "</div>");
       gridHTML += "<div class=\"row grid-row\" data-row-id=\"".concat(resource.id, "\"></div>");
+      rowItemsHTML += "<div class=\"row-items\" data-row-id=\"".concat(resource.id, "\"></div>");
     }
 
     $resources.append(resourcesHTML);
     $grid.append(gridHTML);
+    $content.append(rowItemsHTML);
     setupItems(items);
   }
 
@@ -255,8 +252,8 @@
 
   function getResourceHeight() {
     var resourceHeight = 0;
-    $('.resource').each(function () {
-      resourceHeight += $(this).outerHeight();
+    $('.resource').each(function (index, resource) {
+      resourceHeight += $(resource).outerHeight();
     });
     return resourceHeight;
   }
@@ -264,15 +261,17 @@
   function buildItemHTML(item, id) {
     var timespan = item.endDate.diff(item.startDate, 'days');
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
-    var left = "".concat(item.startDate.date() * unitWidth, "px");
+    var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
     var width = "".concat(timespan * unitWidth, "px");
-    var style = "left: ".concat(left, "; width: ").concat(width, ";");
-    var itemContent = "<div class=\"item-content\">".concat(item.title, "</div>");
-    var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date(), "\" data-y=\"").concat(rowIndex, "\" data-width=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
+    var style = "left: ".concat(left, "; width: ").concat(width, "; background: ").concat(settings.palette[rowIndex % settings.palette.length]);
+    var itemContent = "<div class=\"item-content\">".concat(item.startDate.$D, " ").concat(item.title, "</div>");
+    var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-width=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
   function setupItems(items) {
+    var _this = this;
+
     var rowItems = {};
 
     for (var i = 0; i < items.length; i++) {
@@ -280,21 +279,18 @@
       if (!rowItems[rowId]) rowItems[rowId] = [];
       var itemHTML = buildItemHTML(items[i], i);
       rowItems[rowId].push(itemHTML);
-    }
+    } // TODO: Need to create row item containers for all rows. This doesn't include empty rows
 
-    var rowItemsHTML = '';
+
     $.each(rowItems, function (id, array) {
-      rowItemsHTML += "<div class=\"row-items\" data-row-id=\"".concat(id, "\">");
-      rowItemsHTML += array.join('');
-      rowItemsHTML += '</div>';
+      $(".row-items[data-row-id=\"".concat(id, "\"]")).append(array.join(''));
     });
-    $content.append(rowItemsHTML);
     $('.item').on('click', function (e) {
-      var id = $(this).data('id');
+      var id = $(_this).data('id');
     });
     $('.item').on('mouseenter', function (e) {
-      var id = $(this).data('id');
-      $(".row.resource[data-row-id=\"".concat($(this).data('resource-id'), "\"]")).addClass('highlight');
+      var id = $(_this).data('id');
+      $(".row.resource[data-row-id=\"".concat($(_this).data('resource-id'), "\"]")).addClass('highlight');
     });
     $('.item').on('mouseleave', function (e) {
       $('.row.resource').removeClass('highlight');
@@ -312,13 +308,12 @@
     handleVerticalItemDragging(event, ui);
   }
 
-  function handleHorizontalItemDragging(event, ui) {// TODO: Change dates (or change data-x and use that as a comparator in collision checking instead? To be continued...)
-    // Maybe both the horizontal and vertical functions should return a boolean describing whether move requires a collision check?
-  }
+  function handleHorizontalItemDragging(event, ui) {} // TODO: Change dates (or change data-x and use that as a comparator in collision checking instead? To be continued...)
+  // Find appropriate row-items container for the item and move the item to that container.
+  // Then check for collisions in original container the item was in and the new container.
+
 
   function handleVerticalItemDragging(event, ui) {
-    console.log(event, ui);
-    var yMoveDirection = ui.position.top - ui.originalPosition.top;
     var $item = $(event.target);
     var $parent = $item.parent();
     var parentTop = $parent.position().top;
@@ -326,9 +321,46 @@
     var itemTopInParentContext = $parent.position().top + $item.position().top;
 
     if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
-      // Item is in same row.
+      // Item still in parent row
       $item.css('top', ui.originalPosition.top);
-      handleOverlap();
+    } else if (itemTopInParentContext >= parentBottom) {
+      // Item is in a row below parent
+      var $newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), 1);
+      setParent($item, $newParent);
+      $item.css('top', 0);
+      handleOverlap($parent.index());
+      handleOverlap($newParent.index());
+    } else if (itemTopInParentContext < parentTop) {
+      // Item is in a row above parent
+      var _$newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), -1);
+
+      setParent($item, _$newParent);
+      $item.css('top', 0);
+      handleOverlap($parent.index());
+      handleOverlap(_$newParent.index());
     }
+  } // Find new parent based on item position. Start by checking closest parent in the direction
+  // that the item was moved. Then checks the next and so and and so forth, until the correct
+  // parent is found.
+
+
+  function findNewParent(itemTop, parentId, direction) {
+    var candidateId = parentId + direction;
+    var $candidate = $(".row-items[data-row-id=\"".concat(candidateId, "\"]"));
+    var candidateTop = $candidate.position().top;
+    var candidateBottom = candidateTop + $(".resource[data-row-id=\"".concat(candidateId, "\"]")).outerHeight();
+
+    if (direction > 0) {
+      if (candidateBottom <= itemTop) return findNewParent(itemTop, candidateId, direction);
+      if (candidateBottom > itemTop && candidateTop <= itemTop) return $candidate;
+    } else {
+      if (candidateTop > itemTop) return findNewParent(itemTop, candidateId, direction);
+      if (candidateBottom > itemTop && candidateTop <= itemTop) return $candidate;
+    }
+  }
+
+  function setParent($item, $parent) {
+    $parent.append($item);
+    $item.css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
   }
 })(jQuery);

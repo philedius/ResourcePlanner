@@ -131,11 +131,9 @@ html, body {
     align-items: center;
     justify-content: start;
     padding-left: 4px;
-    background: rgb(48, 117, 89);
     color: white;
     top: 0px;
     left: 0px;
-    opacity: .7;
     cursor: pointer;
     overflow: hidden;
     user-select: none;
@@ -146,7 +144,7 @@ html, body {
 }
 
 .item:hover {
-    background-color: rgb(41, 41, 41) !important;
+    opacity: .7;
     z-index: 10;
 }
 
