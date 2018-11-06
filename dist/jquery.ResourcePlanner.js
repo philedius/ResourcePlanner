@@ -46,7 +46,7 @@
         resources: [],
         items: []
       },
-      palette: ['hsl(206, 92%, 46%)', 'hsl(360, 67%, 51%)', 'hsl(193, 9%, 19%)', 'hsl(39, 97%, 71%)', 'hsl(247, 74%, 63%)', 'hsl(168, 100%, 36%)']
+      palette: ['hsl(206, 78%, 51%)', 'hsl(0, 67%, 56%)', 'hsl(193, 6%, 27%)', 'hsl(39, 97%, 68%)', 'hsl(247, 74%, 67%)', 'hsl(168, 76%, 43%)']
     }, options);
     console.log('settings:\n', settings);
     if (settings.data.resources) resources = settings.data.resources;
@@ -61,16 +61,18 @@
     handleWindowResize();
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
     return this;
-  }; // NOTE: When window width is resized the draggable grid needs to be reinitialized if
-  // items are draggable.
-
+  };
 
   function handleWindowResize() {
     $(window).on('resize', function () {
-      unitWidth = $grid.width() / timelineSubdivisions;
+      unitWidth = Math.floor($grid.width() / timelineSubdivisions);
       $('.item').each(function (index, item) {
-        $(item).css('width', Math.floor($(item).data('width') * unitWidth));
-        $(item).css('left', Math.floor($(item).data('x') * unitWidth));
+        $(item).css('width', Math.round($(item).data('length') * unitWidth));
+        $(item).css('left', Math.round($(item).data('x') * unitWidth));
+        $(item).draggable({
+          grid: [unitWidth, unitHeight],
+          stop: handleItemDragging
+        });
       });
       $('.day').css('width', unitWidth);
     });
@@ -95,19 +97,51 @@
       var top = $(".resource[data-row-id=\"".concat(rowId, "\"]")).position().top - resourceContainerTop;
       $(rowItem).css('top', top);
     });
+  } // function isOverlapping(a, b) {
+  //     let aStart = a.startDate;
+  //     let aEnd = a.endDate;
+  //     let bStart = b.startDate;
+  //     let bEnd = b.endDate;
+  //     let startsSame = aStart.isSame(bStart);
+  //     let endsSame = aEnd.isSame(bEnd);
+  //     if (startsSame || endsSame) return true;
+  //     if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
+  //     if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
+  //     if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
+  //     return false;
+  // }
+
+
+  function isOverlapping(a, b) {
+    var aStart = a.xPos;
+    var aEnd = aStart + a.length;
+    var bStart = b.xPos;
+    var bEnd = bStart + b.length;
+    var sameStart = aStart === bStart;
+    var sameEnd = aEnd === bEnd;
+    if (sameStart || sameEnd) return true;
+    if ((aStart > bStart || sameStart) && aStart < bEnd) return true;
+    if (aEnd > bStart && (aEnd < bEnd || sameEnd)) return true;
+    if (aStart < bStart && aEnd > bEnd) return true;
   }
 
   function checkOverlapInRow(rowIndex) {
     var rowItems = $(".row-items[data-row-id=\"".concat(rowIndex, "\"] .item")).map(function (index, item) {
       return {
         id: $(item).data('id'),
+        xPos: $(item).data('x'),
+        length: $(item).data('length'),
         subRow: 0
       };
-    }); // TODO: Sort items that have same start date by size. Then by id.
+    }); // Sort items first by date, then by length.
 
     rowItems.sort(function (a, b) {
-      if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
-      if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
+      if (b.xPos > a.xPos) return -1;
+      if (a.xPos > b.xPos) return 1; // if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
+      // if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
+
+      if (a.length >= b.length) return -1;
+      if (b.length > a.length) return 1;
       return 0;
     });
     var collisions = [];
@@ -120,9 +154,10 @@
         if (i === j) {
           colliders.push(currentId);
           continue;
-        }
+        } // let overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
 
-        var overlapping = isOverlapping(items[currentId], items[rowItems[j].id]);
+
+        var overlapping = isOverlapping(rowItems[i], rowItems[j]);
 
         if (overlapping) {
           colliders.push(rowItems[j].id);
@@ -184,20 +219,6 @@
       'height': newHeight,
       'max-height': newHeight
     });
-  }
-
-  function isOverlapping(a, b) {
-    var aStart = a.startDate;
-    var aEnd = a.endDate;
-    var bStart = b.startDate;
-    var bEnd = b.endDate;
-    var startsSame = aStart.isSame(bStart);
-    var endsSame = aEnd.isSame(bEnd);
-    if (startsSame || endsSame) return true;
-    if ((aStart.isAfter(bStart) || startsSame) && aStart.isBefore(bEnd)) return true;
-    if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
-    if (aStart.isBefore(bStart) && aEnd.isAfter(bEnd)) return true;
-    return false;
   }
 
   function setupTimeline(settings) {
@@ -262,10 +283,10 @@
     var timespan = item.endDate.diff(item.startDate, 'days');
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
-    var width = "".concat(timespan * unitWidth, "px");
-    var style = "left: ".concat(left, "; width: ").concat(width, "; background: ").concat(settings.palette[rowIndex % settings.palette.length]);
+    var length = "".concat(timespan * unitWidth, "px");
+    var style = "left: ".concat(left, "; width: ").concat(length, "; background: ").concat(settings.palette[rowIndex % settings.palette.length]);
     var itemContent = "<div class=\"item-content\">".concat(item.startDate.$D, " ").concat(item.title, "</div>");
-    var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-width=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
+    var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
@@ -305,8 +326,14 @@
     handleVerticalItemDragging(event, ui);
   }
 
-  function handleHorizontalItemDragging(event, ui) {} // TODO: Change dates (or change data-x and use that as a comparator in collision checking instead? To be continued...)
-  // Find appropriate row-items container for the item and move the item to that container.
+  function handleHorizontalItemDragging(event, ui) {
+    var $item = $(event.target);
+    var $parent = $item.parent();
+    var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
+    var newXPos = $item.data('x') + moveOffset;
+    $item.data('x', newXPos);
+    $item.find('.item-content').text("".concat(newXPos + 1, " ").concat(items[$item.data('id')].title));
+  } // Find appropriate row-items container for the item and move the item to that container.
   // Then check for collisions in original container the item was in and the new container.
 
 
@@ -320,6 +347,7 @@
     if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
       // Item is still in parent row
       $item.css('top', ui.originalPosition.top);
+      handleOverlap($parent.index());
     } else if (itemTopInParentContext >= parentBottom) {
       // Item is in a row below parent
       var $newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), 1);

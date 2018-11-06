@@ -26,7 +26,7 @@ html, body {
     box-sizing: border-box;
     /* min-width: 800px; */
     /* max-height: calc(100vh - 100px); */
-    max-height: 600px;
+    max-height: 800px;
     border: 1px solid #ddd;
     overflow-y: hidden;
     /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
@@ -94,6 +94,7 @@ html, body {
 .resources {
     flex-direction: column;
     border-right: 1px solid #eee;
+    color: #32373a;
 }
 
 .grid {
@@ -109,6 +110,7 @@ html, body {
     width: 100%;
     border-bottom: 1px solid #f4f4f4;
     background: white;
+    align-items: center;
 }
 
 .resources .row:nth-child(odd) {
@@ -122,12 +124,13 @@ html, body {
 .content {
     position: relative;
     width: 100%;
+    white-space: nowrap;
     /* height: 100%; */
 }
 
 .item {
     position: absolute;
-    height: 32px;
+    height: 28px;
     align-items: center;
     justify-content: start;
     padding-left: 4px;
@@ -137,6 +140,7 @@ html, body {
     cursor: pointer;
     overflow: hidden;
     user-select: none;
+    opacity: .95;
 }
 
 .row-items {
@@ -144,7 +148,7 @@ html, body {
 }
 
 .item:hover {
-    opacity: .7;
+    opacity: .8;
     z-index: 10;
 }
 

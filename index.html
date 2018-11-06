@@ -29,8 +29,8 @@
 
     var people = [];
     var events = [];
-    
-    for (var i = 0; i < 70; i++) {
+
+    for (var i = 0; i < 75; i++) {
         var firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
         var lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
         people.push({
@@ -39,7 +39,7 @@
         });
     }
 
-    for (var i = 0; i < 50; i++) {
+    for (var i = 0; i < 120; i++) {
         var startDate = 1 + Math.floor(Math.random() * 20);
         var endDate = 2 + startDate + Math.floor(Math.random() * (29 - startDate));
         
@@ -51,6 +51,7 @@
             endDate: dayjs('2018/11/' + endDate)
         });
     }
+
 
     var rp = $('#planner').ResourcePlanner({
         data: {

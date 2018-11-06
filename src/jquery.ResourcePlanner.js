@@ -47,12 +47,12 @@
 
             },
             palette: [
-                'hsl(206, 92%, 46%)',
-                'hsl(360, 67%, 51%)',
-                'hsl(193, 9%, 19%)',
-                'hsl(39, 97%, 71%)',
-                'hsl(247, 74%, 63%)',
-                'hsl(168, 100%, 36%)',
+                'hsl(206, 78%, 51%)',
+                'hsl(0, 67%, 56%)',
+                'hsl(193, 6%, 27%)',
+                'hsl(39, 97%, 68%)',
+                'hsl(247, 74%, 67%)',
+                'hsl(168, 76%, 43%)',
             ]
         }, options);
 
@@ -74,18 +74,18 @@
         return this;
     }
 
-    // NOTE: When window width is resized the draggable grid needs to be reinitialized if
-    // items are draggable.
     function handleWindowResize() {
         $(window).on('resize', () => {
-            unitWidth = $grid.width() / timelineSubdivisions;
+            unitWidth = Math.floor($grid.width() / timelineSubdivisions);
             $('.item').each((index, item) => {
-                $(item).css('width', Math.floor($(item).data('width') * unitWidth));
-                $(item).css('left', Math.floor($(item).data('x') * unitWidth));
+                $(item).css('width', Math.round($(item).data('length') * unitWidth));
+                $(item).css('left', Math.round($(item).data('x') * unitWidth));
+                $(item).draggable({
+                    grid: [unitWidth, unitHeight],
+                    stop: handleItemDragging,
+                });
             });
-
             $('.day').css('width', unitWidth);
-
         });
     }
 
@@ -109,18 +109,51 @@
         });
     }
 
+    // function isOverlapping(a, b) {
+    //     let aStart = a.startDate;
+    //     let aEnd = a.endDate;
+    //     let bStart = b.startDate;
+    //     let bEnd = b.endDate;
+    //     let startsSame = aStart.isSame(bStart);
+    //     let endsSame = aEnd.isSame(bEnd);
+    //     if (startsSame || endsSame) return true;
+    //     if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
+    //     if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
+    //     if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
+    //     return false;
+    // }
+
+    function isOverlapping(a, b) {
+        let aStart = a.xPos;
+        let aEnd = aStart + a.length;
+        let bStart = b.xPos;
+        let bEnd = bStart + b.length;
+        let sameStart = aStart === bStart;
+        let sameEnd = aEnd === bEnd;
+        if (sameStart || sameEnd) return true;
+        if ((aStart > bStart || sameStart) && aStart < bEnd) return true;
+        if (aEnd > bStart && (aEnd < bEnd || sameEnd)) return true;
+        if (aStart < bStart && aEnd > bEnd) return true;
+    }
+
     function checkOverlapInRow(rowIndex) {
         let rowItems = $(`.row-items[data-row-id="${rowIndex}"] .item`).map((index, item) => {
             return {
                 id: $(item).data('id'),
+                xPos: $(item).data('x'),
+                length: $(item).data('length'),
                 subRow: 0
             }
         });
 
-        // TODO: Sort items that have same start date by size. Then by id.
+        // Sort items first by date, then by length.
         rowItems.sort((a, b) => {
-            if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
-            if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
+            if (b.xPos > a.xPos) return -1;
+            if (a.xPos > b.xPos) return 1;
+            // if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
+            // if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
+            if (a.length >= b.length) return -1;
+            if (b.length > a.length) return 1;
             return 0;
         });
         let collisions = [];
@@ -132,7 +165,8 @@
                     colliders.push(currentId);
                     continue;
                 }
-                let overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
+                // let overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
+                let overlapping = isOverlapping(rowItems[i], rowItems[j])
                 if (overlapping) {
                     colliders.push(rowItems[j].id);
                 }
@@ -188,20 +222,6 @@
             'height': newHeight,
             'max-height': newHeight
         });
-    }
-
-    function isOverlapping(a, b) {
-        let aStart = a.startDate;
-        let aEnd = a.endDate;
-        let bStart = b.startDate;
-        let bEnd = b.endDate;
-        let startsSame = aStart.isSame(bStart);
-        let endsSame = aEnd.isSame(bEnd);
-        if (startsSame || endsSame) return true;
-        if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
-        if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
-        if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
-        return false;
     }
 
     function setupTimeline(settings) {
@@ -265,10 +285,10 @@
         let timespan = item.endDate.diff(item.startDate, 'days');
         let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
-        let width = `${timespan * unitWidth}px`;
-        let style = `left: ${left}; width: ${width}; background: ${settings.palette[rowIndex % settings.palette.length]}`;
+        let length = `${timespan * unitWidth}px`;
+        let style = `left: ${left}; width: ${length}; background: ${settings.palette[rowIndex % settings.palette.length]}`;
         let itemContent = `<div class="item-content">${item.startDate.$D} ${item.title}</div>`
-        let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-width="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+        let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
 
@@ -301,7 +321,7 @@
         $('.item').draggable({
             grid: [unitWidth, unitHeight],
             stop: handleItemDragging,
-        })
+        });
     }
 
     function handleItemDragging(event, ui) {
@@ -310,7 +330,12 @@
     }
 
     function handleHorizontalItemDragging(event, ui) {
-        // TODO: Change dates (or change data-x and use that as a comparator in collision checking instead? To be continued...)
+        let $item = $(event.target);
+        let $parent = $item.parent();
+        let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
+        let newXPos = $item.data('x') + moveOffset;
+        $item.data('x', newXPos);
+        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`)
     }
 
     // Find appropriate row-items container for the item and move the item to that container.
@@ -324,6 +349,7 @@
         if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
             // Item is still in parent row
             $item.css('top', ui.originalPosition.top);
+            handleOverlap($parent.index());
         } else if (itemTopInParentContext >= parentBottom) {
             // Item is in a row below parent
             let $newParent = findNewParent(itemTopInParentContext, $parent.data('row-id'), 1);
