@@ -26,8 +26,8 @@ html, body {
     box-sizing: border-box;
     /* min-width: 800px; */
     /* max-height: calc(100vh - 100px); */
-    max-height: 800px;
-    border: 1px solid #ddd;
+    max-height: 600px;
+    border: 1px solid hsl(220, 15%, 93%);
     overflow-y: hidden;
     /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
 }
@@ -38,10 +38,10 @@ html, body {
     height: 64px;
     min-height: 64px;
     background: white;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid hsl(220, 15%, 93%);
+    color: hsl(220, 10%, 50%);
     z-index: 2;
 }
-
 .corner,
 .resources {
     width: 200px;
@@ -50,7 +50,7 @@ html, body {
 }
 
 .corner {
-    border-right: 1px solid #eee;
+    border-right: 1px solid hsl(220, 15%, 93%);
 }
 
 .timeline {
@@ -62,8 +62,8 @@ html, body {
     height: 50%;
     align-items: center;
     justify-content: center;
-    border-bottom: 1px solid #eee;
-    border-right: 1px solid #eee;
+    border-bottom: 1px solid hsl(220, 15%, 93%);
+    border-right: 1px solid hsl(220, 15%, 93%);
 }
 
 .day-container {
@@ -74,7 +74,7 @@ html, body {
     height: 100%;
     align-items: center;
     justify-content: center;
-    border-right: 1px solid #eee;
+    border-right: 1px solid hsl(220, 15%, 93%);
 }
 
 .scrollbar-filler {
@@ -93,8 +93,8 @@ html, body {
 
 .resources {
     flex-direction: column;
-    border-right: 1px solid #eee;
-    color: #32373a;
+    border-right: 1px solid hsl(220, 15%, 93%);
+    color: hsl(220, 25%, 40%);
 }
 
 .grid {
@@ -108,39 +108,48 @@ html, body {
     max-height: 32px;
     padding: .5rem 1rem;
     width: 100%;
-    border-bottom: 1px solid #f4f4f4;
+    border-bottom: 1px solid hsl(220, 35%, 96%);
     background: white;
     align-items: center;
 }
 
 .resources .row:nth-child(odd) {
-    background: #fcfcfc;
+    background: #fbfcfd;
 }
 
 .grid .row:nth-child(even) {
-    background: #fcfcfc;
+    background: #fbfcfd;
 }
 
 .content {
     position: relative;
     width: 100%;
-    white-space: nowrap;
     /* height: 100%; */
 }
 
 .item {
     position: absolute;
-    height: 28px;
+    height: 32px;
     align-items: center;
     justify-content: start;
-    padding-left: 4px;
     color: white;
     top: 0px;
-    left: 0px;
     cursor: pointer;
-    overflow: hidden;
     user-select: none;
-    opacity: .95;
+}
+
+.item-content {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    height: calc(100% - 4px);
+    margin: 4px 2px;
+    padding-left: 6px;
+    box-sizing: border-box;
+    border-radius: 3px;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .row-items {
@@ -148,10 +157,11 @@ html, body {
 }
 
 .item:hover {
-    opacity: .8;
+    opacity: .9;
     z-index: 10;
 }
 
 .highlight {
-    background: #eee !important;
+    background: hsl(220, 25%, 95%) !important;
+    color: black;
 }

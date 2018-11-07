@@ -36,6 +36,7 @@
             size: {
                 height: 600
             },
+            margin: 4,
             timeline: {
                 viewType: 'month',
                 viewStart: dayjs(),
@@ -68,12 +69,13 @@
         console.log(`Collision time: ${(performance.now() - collisionTimeStart).toFixed(2)}ms`);
         setDimensions(settings);
 
-        handleWindowResize();
+        // handleWindowResize();
 
         console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
         return this;
     }
 
+    // NOTE: This function was goofing up the resizable functionality on items.
     function handleWindowResize() {
         $(window).on('resize', () => {
             unitWidth = Math.floor($grid.width() / timelineSubdivisions);
@@ -286,8 +288,9 @@
         let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
         let length = `${timespan * unitWidth}px`;
-        let style = `left: ${left}; width: ${length}; background: ${settings.palette[rowIndex % settings.palette.length]}`;
-        let itemContent = `<div class="item-content">${item.startDate.$D} ${item.title}</div>`
+        let style = `left: ${left}; width: ${length};`;
+        let contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]};`
+        let itemContent = `<div class="item-content" style="${contentStyle}">${item.startDate.$D} ${item.title}</div>`
         let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
@@ -322,6 +325,29 @@
             grid: [unitWidth, unitHeight],
             stop: handleItemDragging,
         });
+
+        $('.item').each(function() {
+            $(this).resizable({
+                minWidth: unitWidth,
+                grid: [unitWidth, unitHeight],
+                handles: 'e, w',
+                stop: handleItemResizing,
+            });
+        })
+    }
+
+    function handleItemResizing(event, ui) {
+        let $item = $(event.target);
+        let $parent = $item.parent();
+        let moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
+        let widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
+        let newXPos = $item.data('x') + moveOffset;
+        let newLength = $item.data('length') + widthChange;
+        console.log(newXPos, newLength);
+        $item.data('x', newXPos);
+        $item.data('length', newLength)
+        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`);
+        handleOverlap($parent.index());
     }
 
     function handleItemDragging(event, ui) {
@@ -335,7 +361,7 @@
         let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
         let newXPos = $item.data('x') + moveOffset;
         $item.data('x', newXPos);
-        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`)
+        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`);
     }
 
     // Find appropriate row-items container for the item and move the item to that container.
@@ -387,7 +413,7 @@
     function setParent($item, $parent) {
         $parent.append($item);
         $item.data('resource-id', $parent.data('row-id'));
-        $item.css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
+        $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
     }
 
 })(jQuery);

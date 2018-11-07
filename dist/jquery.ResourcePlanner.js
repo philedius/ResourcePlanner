@@ -36,6 +36,7 @@
       size: {
         height: 600
       },
+      margin: 4,
       timeline: {
         viewType: 'month',
         viewStart: dayjs(),
@@ -57,11 +58,12 @@
     var collisionTimeStart = performance.now();
     handleOverlap();
     console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
-    setDimensions(settings);
-    handleWindowResize();
+    setDimensions(settings); // handleWindowResize();
+
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
     return this;
-  };
+  }; // NOTE: This function was goofing up the resizable functionality on items.
+
 
   function handleWindowResize() {
     $(window).on('resize', function () {
@@ -284,8 +286,9 @@
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
     var length = "".concat(timespan * unitWidth, "px");
-    var style = "left: ".concat(left, "; width: ").concat(length, "; background: ").concat(settings.palette[rowIndex % settings.palette.length]);
-    var itemContent = "<div class=\"item-content\">".concat(item.startDate.$D, " ").concat(item.title, "</div>");
+    var style = "left: ".concat(left, "; width: ").concat(length, ";");
+    var contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], ";");
+    var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.startDate.$D, " ").concat(item.title, "</div>");
     var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
@@ -319,6 +322,28 @@
       grid: [unitWidth, unitHeight],
       stop: handleItemDragging
     });
+    $('.item').each(function () {
+      $(this).resizable({
+        minWidth: unitWidth,
+        grid: [unitWidth, unitHeight],
+        handles: 'e, w',
+        stop: handleItemResizing
+      });
+    });
+  }
+
+  function handleItemResizing(event, ui) {
+    var $item = $(event.target);
+    var $parent = $item.parent();
+    var moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
+    var widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
+    var newXPos = $item.data('x') + moveOffset;
+    var newLength = $item.data('length') + widthChange;
+    console.log(newXPos, newLength);
+    $item.data('x', newXPos);
+    $item.data('length', newLength);
+    $item.find('.item-content').text("".concat(newXPos + 1, " ").concat(items[$item.data('id')].title));
+    handleOverlap($parent.index());
   }
 
   function handleItemDragging(event, ui) {
@@ -387,6 +412,6 @@
   function setParent($item, $parent) {
     $parent.append($item);
     $item.data('resource-id', $parent.data('row-id'));
-    $item.css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
+    $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
   }
 })(jQuery);
