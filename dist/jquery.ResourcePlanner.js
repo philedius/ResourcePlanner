@@ -34,7 +34,7 @@
       draggable: true,
       overlap: true,
       size: {
-        height: 600
+        height: 800
       },
       margin: 4,
       timeline: {
@@ -268,6 +268,7 @@
   function setDimensions(settings) {
     var scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
     var resourceHeight = getResourceHeight();
+    $planner.css('height', settings.size.height);
     $scrollContainer.css('max-height', scrollContainerHeight);
     $resources.css('height', resourceHeight);
     $grid.css('height', resourceHeight);
@@ -286,9 +287,9 @@
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
     var length = "".concat(timespan * unitWidth, "px");
-    var style = "left: ".concat(left, "; width: ").concat(length, ";");
+    var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
     var contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], ";");
-    var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.startDate.$D, " ").concat(item.title, "</div>");
+    var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
     var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
@@ -342,7 +343,6 @@
     console.log(newXPos, newLength);
     $item.data('x', newXPos);
     $item.data('length', newLength);
-    $item.find('.item-content').text("".concat(newXPos + 1, " ").concat(items[$item.data('id')].title));
     handleOverlap($parent.index());
   }
 
@@ -357,7 +357,6 @@
     var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
     var newXPos = $item.data('x') + moveOffset;
     $item.data('x', newXPos);
-    $item.find('.item-content').text("".concat(newXPos + 1, " ").concat(items[$item.data('id')].title));
   } // Find appropriate row-items container for the item and move the item to that container.
   // Then check for collisions in original container the item was in and the new container.
 
@@ -411,7 +410,6 @@
 
   function setParent($item, $parent) {
     $parent.append($item);
-    $item.data('resource-id', $parent.data('row-id'));
-    $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
+    $item.data('resource-id', $parent.data('row-id')); // $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
   }
 })(jQuery);

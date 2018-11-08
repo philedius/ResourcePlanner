@@ -34,7 +34,7 @@
             draggable: true,
             overlap: true,
             size: {
-                height: 600
+                height: 800
             },
             margin: 4,
             timeline: {
@@ -269,6 +269,7 @@
     function setDimensions(settings) {
         let scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
         let resourceHeight = getResourceHeight();
+        $planner.css('height', settings.size.height);
         $scrollContainer.css('max-height', scrollContainerHeight);
         $resources.css('height', resourceHeight);
         $grid.css('height', resourceHeight);
@@ -288,9 +289,9 @@
         let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
         let length = `${timespan * unitWidth}px`;
-        let style = `left: ${left}; width: ${length};`;
+        let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
         let contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]};`
-        let itemContent = `<div class="item-content" style="${contentStyle}">${item.startDate.$D} ${item.title}</div>`
+        let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`
         let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
@@ -346,7 +347,6 @@
         console.log(newXPos, newLength);
         $item.data('x', newXPos);
         $item.data('length', newLength)
-        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`);
         handleOverlap($parent.index());
     }
 
@@ -361,7 +361,6 @@
         let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
         let newXPos = $item.data('x') + moveOffset;
         $item.data('x', newXPos);
-        $item.find('.item-content').text(`${newXPos + 1} ${items[$item.data('id')].title}`);
     }
 
     // Find appropriate row-items container for the item and move the item to that container.
@@ -413,7 +412,7 @@
     function setParent($item, $parent) {
         $parent.append($item);
         $item.data('resource-id', $parent.data('row-id'));
-        $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
+        // $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
     }
 
 })(jQuery);

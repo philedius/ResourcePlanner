@@ -26,7 +26,7 @@ html, body {
     box-sizing: border-box;
     /* min-width: 800px; */
     /* max-height: calc(100vh - 100px); */
-    max-height: 600px;
+    /* max-height: 600px; */
     border: 1px solid hsl(220, 15%, 93%);
     overflow-y: hidden;
     /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
@@ -129,7 +129,7 @@ html, body {
 
 .item {
     position: absolute;
-    height: 32px;
+    /* height: 32px; */
     align-items: center;
     justify-content: start;
     color: white;
