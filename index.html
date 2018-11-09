@@ -74,7 +74,8 @@
         'Boyle',
         'Linetti',
         'Jeffords',
-        'Holt'
+        'Holt',
+        'Diaz',
     ];
     var eventTitles = [
         'Basking in glory',
@@ -82,15 +83,22 @@
         'Brewing a storm',
         'Bringing justice',
         'Brooding',
+        'Building an evil lair',
         'Buying milk',
         'Cancelling beloved TV shows',
         'Cashing checks',
+        'Christening a ship',
+        'Conducting a voodoo ritual',
         'Couchsurfing',
         'Crashing a party',
+        'Dancing on the graves of enemies',
         'Decombobulating',
         'Delivering babies',
         'Doctor\'s appointment',
+        'Doing somersaults',
+        'Dressing monkeys',
         'Dropping beats',
+        'Escaping prison',
         'Fending off bees',
         'Fighting crime',
         'Fighting dinosaurs',
@@ -98,57 +106,100 @@
         'Flexing muscles',
         'Flying a boat',
         'Fraternizing with the enemy',
+        'Getting bitten by a radioactive spider',
+        'Making gravy',
         'Moving mountains',
         'On a business trip down memory lane',
+        'On staycation',
+        'On vacation',
+        'Playing the cello',
         'Procrastinating',
+        'Reinventing the wheel',
         'Ruining Christmas',
         'Running for president',
         'Saving the world',
         'Soul searching',
-        'Staycation',
         'Straight up clowning',
         'Taking out the trash',
         'Taking over the world',
         'That work thing',
         'Ushering souls',
-        'Vacation',
-        'Watching movie',
+        'Walking on sunshine',
+        'Wasting time',
+        'Watching a movie',
         'Writing a diss track',
         'Writing placeholder text',
+        'Yo-Yo-ing',
     ];
 
     var people = [];
     var events = [];
 
-    for (var i = 0; i < 10; i++) {
-        var firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-        var lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-        people.push({
-            name: firstName + ' ' + lastName,
-            id: i
-        });
-    }
-
-    for (var i = 0; i < 70; i++) {
-        var startDate = 1 + Math.floor(Math.random() * 28);
-        var endDate = 2 + startDate + Math.floor(Math.random() * (28 - startDate));
-        
-        events.push({
-            title: eventTitles[i % eventTitles.length],
-            // responsible: people[i % people.length],
-            responsible: people[Math.floor(Math.random() * people.length)],
-            startDate: dayjs('2018/11/' + startDate),
-            endDate: dayjs('2018/11/' + endDate)
-        });
-    }
+    generateMockData();
 
 
     var rp = $('#planner').ResourcePlanner({
         data: {
             resources: people,
             items: events
+        },
+        size: {
+            height: 680
         }
     });
+
+    setTimeout(function() {
+        generateMockData();
+        rp = $('#planner').ResourcePlanner({
+            data: {
+                resources: people,
+                items: events
+            },
+            size: {
+                height: 680
+            }
+        });
+        setTimeout(function() {
+            generateMockData();
+            rp = $('#planner').ResourcePlanner({
+                data: {
+                    resources: people,
+                    items: events
+                },
+                size: {
+                    height: 680
+                }
+            });
+        }, 300);
+    }, 300);
+
+    
+
+    function generateMockData() {
+        people = [];
+        events = [];
+        for (var i = 0; i < 15; i++) {
+            var firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            var lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            people.push({
+                name: firstName + ' ' + lastName,
+                id: i
+            });
+        }
+
+        for (var i = 0; i < 100; i++) {
+            var startDate = 1 + Math.floor(Math.random() * 28);
+            var endDate = 2 + startDate + Math.floor(Math.random() * (28 - startDate));
+            
+            events.push({
+                title: eventTitles[i % eventTitles.length],
+                // responsible: people[i % people.length],
+                responsible: people[Math.floor(Math.random() * people.length)],
+                startDate: dayjs('2018/11/' + startDate),
+                endDate: dayjs('2018/11/' + endDate)
+            });
+        }
+    }
 
 </script>
 </html>

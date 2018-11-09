@@ -19,6 +19,7 @@
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
+    $planner.empty();
     $planner.addClass('resource-planner');
     $planner.append('<div class="timeline-container"><div class="corner"></div><div class="timeline"></div><div class="scrollbar-filler"></div></div>');
     $planner.append('<div class="scroll-container"><div class="resources"></div><div class="grid"></div></div>');
@@ -99,20 +100,7 @@
       var top = $(".resource[data-row-id=\"".concat(rowId, "\"]")).position().top - resourceContainerTop;
       $(rowItem).css('top', top);
     });
-  } // function isOverlapping(a, b) {
-  //     let aStart = a.startDate;
-  //     let aEnd = a.endDate;
-  //     let bStart = b.startDate;
-  //     let bEnd = b.endDate;
-  //     let startsSame = aStart.isSame(bStart);
-  //     let endsSame = aEnd.isSame(bEnd);
-  //     if (startsSame || endsSame) return true;
-  //     if ((aStart.isAfter(bStart) || startsSame) && (aStart.isBefore(bEnd))) return true;
-  //     if (aEnd.isAfter(bStart) && (aEnd.isBefore(bEnd) || endsSame)) return true;
-  //     if ((aStart.isBefore(bStart)) && (aEnd.isAfter(bEnd))) return true;
-  //     return false;
-  // }
-
+  }
 
   function isOverlapping(a, b) {
     var aStart = a.xPos;
@@ -139,9 +127,7 @@
 
     rowItems.sort(function (a, b) {
       if (b.xPos > a.xPos) return -1;
-      if (a.xPos > b.xPos) return 1; // if (items[a.id].startDate.isBefore(items[b.id].startDate)) return -1;
-      // if (items[b.id].startDate.isBefore(items[a.id].startDate)) return 1;
-
+      if (a.xPos > b.xPos) return 1;
       if (a.length >= b.length) return -1;
       if (b.length > a.length) return 1;
       return 0;
@@ -156,8 +142,7 @@
         if (i === j) {
           colliders.push(currentId);
           continue;
-        } // let overlapping = isOverlapping(items[currentId], items[rowItems[j].id])
-
+        }
 
         var overlapping = isOverlapping(rowItems[i], rowItems[j]);
 
@@ -206,13 +191,6 @@
     var heightInUnits = highestSubRow + 1;
     changeRowHeight($(".row[data-row-id=\"".concat(rowIndex, "\"]")), heightInUnits);
   }
-  /**
-   * Changes height of row by a certain amount of units
-   * @param {jQuery object} $row 
-   * @param {integer} units 
-   * 
-   */
-
 
   function changeRowHeight($row, units) {
     var newHeight = unitHeight * units;
@@ -410,6 +388,6 @@
 
   function setParent($item, $parent) {
     $parent.append($item);
-    $item.data('resource-id', $parent.data('row-id')); // $item.find('.item-content').css('background', settings.palette[$parent.data('row-id') % settings.palette.length]);
+    $item.data('resource-id', $parent.data('row-id'));
   }
 })(jQuery);
