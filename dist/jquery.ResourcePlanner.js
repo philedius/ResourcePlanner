@@ -16,6 +16,7 @@
   var resources;
   var items;
   var settings;
+  var lastInnerWidth;
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
@@ -59,16 +60,20 @@
     var collisionTimeStart = performance.now();
     handleOverlap();
     console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
-    setDimensions(settings); // handleWindowResize();
-
+    setDimensions(settings);
+    handleWindowResize();
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
     return this;
-  }; // NOTE: This function was goofing up the resizable functionality on items.
-
+  };
 
   function handleWindowResize() {
+    lastInnerWidth = window.innerWidth;
     $(window).on('resize', function () {
-      unitWidth = Math.floor($grid.width() / timelineSubdivisions);
+      if (window.innerWidth === lastInnerWidth) return;
+      lastInnerWidth = window.innerWidth; // NOTE: Math.floor on unitWidth makes resizing jittery.
+      // But this can be changed to use Math.floor again if needed.
+
+      unitWidth = $grid.width() / timelineSubdivisions;
       $('.item').each(function (index, item) {
         $(item).css('width', Math.round($(item).data('length') * unitWidth));
         $(item).css('left', Math.round($(item).data('x') * unitWidth));
@@ -78,6 +83,7 @@
         });
       });
       $('.day').css('width', unitWidth);
+      $('.month').css('width', unitWidth * timelineSubdivisions);
     });
   }
 
@@ -214,6 +220,8 @@
         }
 
         $timeline.find('.day-container').append(daysHTML);
+        $('.day').css('width', unitWidth);
+        $('.month').css('width', unitWidth * timelineSubdivisions);
         break;
 
       default:
@@ -299,6 +307,7 @@
     });
     $('.item').draggable({
       grid: [unitWidth, unitHeight],
+      drag: handleHorizontalItemDragging,
       stop: handleItemDragging
     });
     $('.item').each(function () {
@@ -311,19 +320,6 @@
     });
   }
 
-  function handleItemResizing(event, ui) {
-    var $item = $(event.target);
-    var $parent = $item.parent();
-    var moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
-    var widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
-    var newXPos = $item.data('x') + moveOffset;
-    var newLength = $item.data('length') + widthChange;
-    console.log(newXPos, newLength);
-    $item.data('x', newXPos);
-    $item.data('length', newLength);
-    handleOverlap($parent.index());
-  }
-
   function handleItemDragging(event, ui) {
     handleHorizontalItemDragging(event, ui);
     handleVerticalItemDragging(event, ui);
@@ -334,7 +330,16 @@
     var $parent = $item.parent();
     var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
     var newXPos = $item.data('x') + moveOffset;
-    $item.data('x', newXPos);
+    var newEndPos = newXPos + $item.data('length'); // TODO: When dragged beyond timeline item length gets shortened by 1.
+
+    if (newEndPos > timelineSubdivisions) {
+      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
+    } else if (newXPos < timelineSubdivisions) {// TODO: dis
+    } else {
+      $item.css('width', $item.data('length') * unitWidth);
+    }
+
+    if (event.type === 'dragstop') $item.data('x', newXPos);
   } // Find appropriate row-items container for the item and move the item to that container.
   // Then check for collisions in original container the item was in and the new container.
 
@@ -366,6 +371,19 @@
       handleOverlap($parent.index());
       handleOverlap(_$newParent.index());
     }
+  }
+
+  function handleItemResizing(event, ui) {
+    var $item = $(event.target);
+    var $parent = $item.parent();
+    var moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
+    var widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
+    var newXPos = $item.data('x') + moveOffset;
+    var newLength = $item.data('length') + widthChange;
+    console.log(newXPos, newLength);
+    $item.data('x', newXPos);
+    $item.data('length', newLength);
+    handleOverlap($parent.index());
   } // Recursively find new parent based on item position. Start by checking closest parent in the
   // direction that the item was moved. Then checks the next and so and and so forth, until the 
   // correct parent is found.
