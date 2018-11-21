@@ -60,7 +60,7 @@
     var collisionTimeStart = performance.now();
     handleOverlap();
     console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
-    setDimensions(settings);
+    initializeHeight(settings);
     handleWindowResize();
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
     return this;
@@ -72,6 +72,7 @@
       if (window.innerWidth === lastInnerWidth) return;
       lastInnerWidth = window.innerWidth; // NOTE: Math.floor on unitWidth makes resizing jittery.
       // But this can be changed to use Math.floor again if needed.
+      // initializeHeight();
 
       unitWidth = $grid.width() / timelineSubdivisions;
       $('.item').each(function (index, item) {
@@ -85,6 +86,20 @@
       $('.day').css('width', unitWidth);
       $('.month').css('width', unitWidth * timelineSubdivisions);
     });
+  }
+
+  function blks() {
+    unitWidth = $grid.width() / timelineSubdivisions;
+    $('.item').each(function (index, item) {
+      $(item).css('width', Math.round($(item).data('length') * unitWidth));
+      $(item).css('left', Math.round($(item).data('x') * unitWidth));
+      $(item).draggable({
+        grid: [unitWidth, unitHeight],
+        stop: handleItemDragging
+      });
+    });
+    $('.day').css('width', unitWidth);
+    $('.month').css('width', unitWidth * timelineSubdivisions);
   }
 
   function handleOverlap(rowIndex) {
@@ -251,7 +266,7 @@
     setupItems(items);
   }
 
-  function setDimensions(settings) {
+  function initializeHeight(settings) {
     var scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
     var resourceHeight = getResourceHeight();
     $planner.css('height', settings.size.height);
@@ -271,18 +286,23 @@
   function buildItemHTML(item, id) {
     var timespan = item.endDate.diff(item.startDate, 'days');
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
+    var x = item.startDate.date() - 1;
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
     var length = "".concat(timespan * unitWidth, "px");
-    var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
     var contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], ";");
+
+    if (x + timespan > timelineSubdivisions) {
+      length = "".concat((timelineSubdivisions - x) * unitWidth, "px");
+      contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], "; border-right: 1px dashed rgba(255, 255, 255, 0.65); border-bottom-right-radius: 0px; border-top-right-radius: 0px;");
+    }
+
+    var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
     var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
     var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
   function setupItems(items) {
-    var _this = this;
-
     var rowItems = {};
 
     for (var i = 0; i < items.length; i++) {
@@ -296,7 +316,9 @@
       $(".row-items[data-row-id=\"".concat(id, "\"]")).append(array.join(''));
     });
     $('.item').on('click', function (e) {
-      var id = $(_this).data('id');
+      var $target = $(e.currentTarget);
+      var id = $target.data('id');
+      console.log(settings.data.items[id]);
     });
     $('.item').on('mouseenter', function (e) {
       var $target = $(e.currentTarget);

@@ -69,8 +69,7 @@
         let collisionTimeStart = performance.now();
         handleOverlap();
         console.log(`Collision time: ${(performance.now() - collisionTimeStart).toFixed(2)}ms`);
-        setDimensions(settings);
-
+        initializeHeight(settings);
         handleWindowResize();
 
         console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
@@ -84,6 +83,7 @@
             lastInnerWidth = window.innerWidth;
             // NOTE: Math.floor on unitWidth makes resizing jittery.
             // But this can be changed to use Math.floor again if needed.
+            // initializeHeight();
             unitWidth = $grid.width() / timelineSubdivisions;
             $('.item').each((index, item) => {
                 $(item).css('width', Math.round($(item).data('length') * unitWidth));
@@ -96,6 +96,20 @@
             $('.day').css('width', unitWidth);
             $('.month').css('width', unitWidth * timelineSubdivisions);
         });
+    }
+
+    function blks() {
+        unitWidth = $grid.width() / timelineSubdivisions;
+        $('.item').each((index, item) => {
+            $(item).css('width', Math.round($(item).data('length') * unitWidth));
+            $(item).css('left', Math.round($(item).data('x') * unitWidth));
+            $(item).draggable({
+                grid: [unitWidth, unitHeight],
+                stop: handleItemDragging,
+            });
+        });
+        $('.day').css('width', unitWidth);
+        $('.month').css('width', unitWidth * timelineSubdivisions);
     }
 
     function handleOverlap(rowIndex) {
@@ -252,7 +266,7 @@
         setupItems(items);
     }
 
-    function setDimensions(settings) {
+    function initializeHeight(settings) {
         let scrollContainerHeight = $planner.outerHeight() - $timelineContainer.outerHeight();
         let resourceHeight = getResourceHeight();
         $planner.css('height', settings.size.height);
@@ -272,11 +286,18 @@
     function buildItemHTML(item, id) {
         let timespan = item.endDate.diff(item.startDate, 'days');
         let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
+        let x = item.startDate.date() - 1;
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
         let length = `${timespan * unitWidth}px`;
-        let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
         let contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]};`
-        let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`
+        
+        if ((x + timespan) > timelineSubdivisions) {
+            length = `${(timelineSubdivisions - x) * unitWidth}px`;
+            contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]}; border-right: 1px dashed rgba(255, 255, 255, 0.65); border-bottom-right-radius: 0px; border-top-right-radius: 0px;`
+        }   
+        
+        let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
+        let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`;
         let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
@@ -295,7 +316,9 @@
         })
 
         $('.item').on('click', (e) => {
-            let id = $(this).data('id');
+            let $target = $(e.currentTarget)
+            let id = $target.data('id');
+            console.log(settings.data.items[id]);
         });
 
         $('.item').on('mouseenter', (e) => {
