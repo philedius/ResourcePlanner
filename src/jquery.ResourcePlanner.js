@@ -318,7 +318,8 @@
         $('.item').on('click', (e) => {
             let $target = $(e.currentTarget)
             let id = $target.data('id');
-            console.log(settings.data.items[id]);
+            let item = settings.data.items[id];
+            console.log($target.data('length'), item.endDate.diff(item.startDate, 'days'));
         });
 
         $('.item').on('mouseenter', (e) => {
@@ -360,7 +361,7 @@
         // TODO: When dragged beyond timeline item length gets shortened by 1.
         if (newEndPos > timelineSubdivisions) {
             $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
-        } else if (newXPos < timelineSubdivisions) {
+        // } else if (newXPos < timelineSubdivisions) {
             // TODO: dis
         } else {
             $item.css('width', $item.data('length') * unitWidth);

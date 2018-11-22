@@ -318,7 +318,8 @@
     $('.item').on('click', function (e) {
       var $target = $(e.currentTarget);
       var id = $target.data('id');
-      console.log(settings.data.items[id]);
+      var item = settings.data.items[id];
+      console.log($target.data('length'), item.endDate.diff(item.startDate, 'days'));
     });
     $('.item').on('mouseenter', function (e) {
       var $target = $(e.currentTarget);
@@ -355,8 +356,8 @@
     var newEndPos = newXPos + $item.data('length'); // TODO: When dragged beyond timeline item length gets shortened by 1.
 
     if (newEndPos > timelineSubdivisions) {
-      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
-    } else if (newXPos < timelineSubdivisions) {// TODO: dis
+      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth); // } else if (newXPos < timelineSubdivisions) {
+      // TODO: dis
     } else {
       $item.css('width', $item.data('length') * unitWidth);
     }
