@@ -36,7 +36,7 @@
             draggable: true,
             overlap: true,
             size: {
-                height: 800
+                height: 700
             },
             margin: 4,
             timeline: {
@@ -70,6 +70,7 @@
         handleOverlap();
         console.log(`Collision time: ${(performance.now() - collisionTimeStart).toFixed(2)}ms`);
         initializeHeight(settings);
+        scaleTimelineWidth();
         handleWindowResize();
 
         console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
@@ -83,7 +84,6 @@
             lastInnerWidth = window.innerWidth;
             // NOTE: Math.floor on unitWidth makes resizing jittery.
             // But this can be changed to use Math.floor again if needed.
-            // initializeHeight();
             unitWidth = $grid.width() / timelineSubdivisions;
             $('.item').each((index, item) => {
                 $(item).css('width', Math.round($(item).data('length') * unitWidth));
@@ -93,21 +93,12 @@
                     stop: handleItemDragging,
                 });
             });
-            $('.day').css('width', unitWidth);
-            $('.month').css('width', unitWidth * timelineSubdivisions);
+            scaleTimelineWidth();
         });
     }
 
-    function blks() {
-        unitWidth = $grid.width() / timelineSubdivisions;
-        $('.item').each((index, item) => {
-            $(item).css('width', Math.round($(item).data('length') * unitWidth));
-            $(item).css('left', Math.round($(item).data('x') * unitWidth));
-            $(item).draggable({
-                grid: [unitWidth, unitHeight],
-                stop: handleItemDragging,
-            });
-        });
+    // Scales the width of the timeline to the unitWidth.
+    function scaleTimelineWidth() {
         $('.day').css('width', unitWidth);
         $('.month').css('width', unitWidth * timelineSubdivisions);
     }
@@ -290,15 +281,18 @@
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
         let length = `${timespan * unitWidth}px`;
         let contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]};`
-        
+        let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`;
+        let classes = 'item';
         if ((x + timespan) > timelineSubdivisions) {
+            console.log(length);
             length = `${(timelineSubdivisions - x) * unitWidth}px`;
-            contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]}; border-right: 1px dashed rgba(255, 255, 255, 0.65); border-bottom-right-radius: 0px; border-top-right-radius: 0px;`
-        }   
+            console.log(x, timespan, timelineSubdivisions - x, length);
+            classes += ' out-of-bounds-right';
+        }
         
         let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
-        let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`;
-        let html = `<div class="item" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+        if ((x + timespan) > timelineSubdivisions) console.log(style);
+        let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
 
@@ -356,17 +350,29 @@
         let $item = $(event.target);
         let $parent = $item.parent();
         let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
+        console.log(moveOffset);
         let newXPos = $item.data('x') + moveOffset;
         let newEndPos = newXPos + $item.data('length');
-        // TODO: When dragged beyond timeline item length gets shortened by 1.
         if (newEndPos > timelineSubdivisions) {
             $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
-        // } else if (newXPos < timelineSubdivisions) {
-            // TODO: dis
+            $item.addClass('out-of-bounds-right');
+        } else if (newXPos < 0) {
+            // TODO: Fix this. Does the ui.position.left need to be tracked
+            // separately when x position is < 0? 🤔🤔🤔🤔
+            console.log(newXPos);
+            ui.position.left += -newXPos * unitWidth;
+            let newWidth = ($item.data('length') + newXPos) * unitWidth;
+            $item.css('width', newWidth);
+            // $item.css('width', $item.data('length') * unitWidth);
+            $item.addClass('out-of-bounds-left');
         } else {
             $item.css('width', $item.data('length') * unitWidth);
+            $item.removeClass('out-of-bounds-left');
+            $item.removeClass('out-of-bounds-right');
         }
-        if (event.type === 'dragstop') $item.data('x', newXPos);
+        if (event.type === 'dragstop') {
+            
+        } $item.data('x', newXPos);
     }
 
     // Find appropriate row-items container for the item and move the item to that container.

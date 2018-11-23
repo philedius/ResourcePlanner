@@ -5,7 +5,6 @@ html, body {
 
 #container {
     font-family: 'Segoe UI';
-    /* height: 1000px; */
     font-size: 12px;
     box-sizing: border-box;
 }
@@ -24,12 +23,8 @@ html, body {
     flex-direction: column;
     margin: 32px;
     box-sizing: border-box;
-    /* min-width: 800px; */
-    /* max-height: calc(100vh - 100px); */
-    /* max-height: 600px; */
     border: 1px solid hsl(220, 15%, 93%);
     overflow-y: hidden;
-    /* box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.03); */
 }
 
 .timeline-container {
@@ -147,7 +142,7 @@ html, body {
     margin: 4px 2px;
     padding-left: 6px;
     box-sizing: border-box;
-    border-radius: 5px;
+    border-radius: 6px;
     overflow: hidden;
     white-space: nowrap;
 }
@@ -159,6 +154,18 @@ html, body {
 .item:hover {
     opacity: .9;
     z-index: 10;
+}
+
+.item.out-of-bounds-left .item-content {
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+    border-left: 2px dotted rgba(255, 255, 255, 0.65);
+}
+
+.item.out-of-bounds-right .item-content {
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+    border-right: 2px dotted rgba(255, 255, 255, 0.65);
 }
 
 .highlight {

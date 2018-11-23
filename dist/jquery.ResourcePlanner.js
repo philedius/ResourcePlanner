@@ -36,7 +36,7 @@
       draggable: true,
       overlap: true,
       size: {
-        height: 800
+        height: 700
       },
       margin: 4,
       timeline: {
@@ -61,6 +61,7 @@
     handleOverlap();
     console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
     initializeHeight(settings);
+    scaleTimelineWidth();
     handleWindowResize();
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
     return this;
@@ -72,7 +73,6 @@
       if (window.innerWidth === lastInnerWidth) return;
       lastInnerWidth = window.innerWidth; // NOTE: Math.floor on unitWidth makes resizing jittery.
       // But this can be changed to use Math.floor again if needed.
-      // initializeHeight();
 
       unitWidth = $grid.width() / timelineSubdivisions;
       $('.item').each(function (index, item) {
@@ -83,21 +83,12 @@
           stop: handleItemDragging
         });
       });
-      $('.day').css('width', unitWidth);
-      $('.month').css('width', unitWidth * timelineSubdivisions);
+      scaleTimelineWidth();
     });
-  }
+  } // Scales the width of the timeline to the unitWidth.
 
-  function blks() {
-    unitWidth = $grid.width() / timelineSubdivisions;
-    $('.item').each(function (index, item) {
-      $(item).css('width', Math.round($(item).data('length') * unitWidth));
-      $(item).css('left', Math.round($(item).data('x') * unitWidth));
-      $(item).draggable({
-        grid: [unitWidth, unitHeight],
-        stop: handleItemDragging
-      });
-    });
+
+  function scaleTimelineWidth() {
     $('.day').css('width', unitWidth);
     $('.month').css('width', unitWidth * timelineSubdivisions);
   }
@@ -290,15 +281,19 @@
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
     var length = "".concat(timespan * unitWidth, "px");
     var contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], ";");
+    var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
+    var classes = 'item';
 
     if (x + timespan > timelineSubdivisions) {
+      console.log(length);
       length = "".concat((timelineSubdivisions - x) * unitWidth, "px");
-      contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], "; border-right: 1px dashed rgba(255, 255, 255, 0.65); border-bottom-right-radius: 0px; border-top-right-radius: 0px;");
+      console.log(x, timespan, timelineSubdivisions - x, length);
+      classes += ' out-of-bounds-right';
     }
 
     var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
-    var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
-    var html = "<div class=\"item\" data-x=\"".concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
+    if (x + timespan > timelineSubdivisions) console.log(style);
+    var html = "<div class=\"".concat(classes, "\" data-x=\"").concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
@@ -352,14 +347,26 @@
     var $item = $(event.target);
     var $parent = $item.parent();
     var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
+    console.log(moveOffset);
     var newXPos = $item.data('x') + moveOffset;
-    var newEndPos = newXPos + $item.data('length'); // TODO: When dragged beyond timeline item length gets shortened by 1.
+    var newEndPos = newXPos + $item.data('length');
 
     if (newEndPos > timelineSubdivisions) {
-      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth); // } else if (newXPos < timelineSubdivisions) {
-      // TODO: dis
+      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
+      $item.addClass('out-of-bounds-right');
+    } else if (newXPos < 0) {
+      // TODO: Fix this. Does the ui.position.left need to be tracked
+      // separately when x position is < 0? 🤔🤔🤔🤔
+      console.log(newXPos);
+      ui.position.left += -newXPos * unitWidth;
+      var newWidth = ($item.data('length') + newXPos) * unitWidth;
+      $item.css('width', newWidth); // $item.css('width', $item.data('length') * unitWidth);
+
+      $item.addClass('out-of-bounds-left');
     } else {
       $item.css('width', $item.data('length') * unitWidth);
+      $item.removeClass('out-of-bounds-left');
+      $item.removeClass('out-of-bounds-right');
     }
 
     if (event.type === 'dragstop') $item.data('x', newXPos);

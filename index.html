@@ -144,7 +144,7 @@
             items: events
         },
         size: {
-            height: 580
+            height: 500
         }
     });
 
@@ -160,14 +160,14 @@
             });
         }
 
-        for (var i = 0; i < 200; i++) {
-            var startDate = 1 + Math.floor(Math.random() * 20);
+        for (var i = 0; i < 30; i++) {
+            var startDate = 1 + Math.floor(Math.random() * 40);
             var endDate = startDate + Math.ceil(Math.random() * 10);
             
             events.push({
                 title: eventTitles[i % eventTitles.length],
-                // responsible: people[i % people.length],
-                responsible: people[Math.floor(Math.random() * people.length)],
+                responsible: people[i % people.length],
+                // responsible: people[Math.floor(Math.random() * people.length)],
                 startDate: dayjs('2018/11/01').add(startDate, 'day'),
                 endDate: dayjs('2018/11/01').add(endDate, 'day')
             });
