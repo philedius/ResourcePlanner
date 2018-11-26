@@ -76,8 +76,8 @@
 
       unitWidth = $grid.width() / timelineSubdivisions;
       $('.item').each(function (index, item) {
-        $(item).css('width', Math.round($(item).data('length') * unitWidth));
-        $(item).css('left', Math.round($(item).data('x') * unitWidth));
+        $(item).css('width', $(item).data('visible-length') * unitWidth);
+        $(item).css('left', $(item).data('x') * unitWidth);
         $(item).draggable({
           grid: [unitWidth, unitHeight],
           stop: handleItemDragging
@@ -276,6 +276,7 @@
 
   function buildItemHTML(item, id) {
     var timespan = item.endDate.diff(item.startDate, 'days');
+    var visibleTimespan = timespan;
     var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
     var x = item.startDate.date() - 1;
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
@@ -286,14 +287,15 @@
 
     if (x + timespan > timelineSubdivisions) {
       console.log(length);
-      length = "".concat((timelineSubdivisions - x) * unitWidth, "px");
+      visibleTimespan = timelineSubdivisions - x;
+      length = "".concat(visibleTimespan * unitWidth, "px");
       console.log(x, timespan, timelineSubdivisions - x, length);
       classes += ' out-of-bounds-right';
     }
 
     var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
     if (x + timespan > timelineSubdivisions) console.log(style);
-    var html = "<div class=\"".concat(classes, "\" data-x=\"").concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
+    var html = "<div class=\"".concat(classes, "\" data-x=\"").concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-visible-length=").concat(visibleTimespan, " data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
@@ -347,21 +349,19 @@
     var $item = $(event.target);
     var $parent = $item.parent();
     var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
-    console.log(moveOffset);
     var newXPos = $item.data('x') + moveOffset;
     var newEndPos = newXPos + $item.data('length');
 
     if (newEndPos > timelineSubdivisions) {
-      $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
+      $item.data('visible-length', timelineSubdivisions - newXPos);
+      $item.css('width', $item.data('visible-length') * unitWidth);
       $item.addClass('out-of-bounds-right');
     } else if (newXPos < 0) {
       // TODO: Fix this. Does the ui.position.left need to be tracked
       // separately when x position is < 0? 🤔🤔🤔🤔
-      console.log(newXPos);
       ui.position.left += -newXPos * unitWidth;
-      var newWidth = ($item.data('length') + newXPos) * unitWidth;
-      $item.css('width', newWidth); // $item.css('width', $item.data('length') * unitWidth);
-
+      $item.data('visible-length', $item.data('length') + newXPos);
+      $item.css('width', $item.data('visible-length') * unitWidth);
       $item.addClass('out-of-bounds-left');
     } else {
       $item.css('width', $item.data('length') * unitWidth);
@@ -369,7 +369,9 @@
       $item.removeClass('out-of-bounds-right');
     }
 
-    if (event.type === 'dragstop') $item.data('x', newXPos);
+    if (event.type === 'dragstop') {
+      $item.data('x', newXPos);
+    }
   } // Find appropriate row-items container for the item and move the item to that container.
   // Then check for collisions in original container the item was in and the new container.
 

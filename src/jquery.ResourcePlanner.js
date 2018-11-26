@@ -86,8 +86,8 @@
             // But this can be changed to use Math.floor again if needed.
             unitWidth = $grid.width() / timelineSubdivisions;
             $('.item').each((index, item) => {
-                $(item).css('width', Math.round($(item).data('length') * unitWidth));
-                $(item).css('left', Math.round($(item).data('x') * unitWidth));
+                $(item).css('width', ($(item).data('visible-length') * unitWidth));
+                $(item).css('left', ($(item).data('x') * unitWidth));
                 $(item).draggable({
                     grid: [unitWidth, unitHeight],
                     stop: handleItemDragging,
@@ -276,6 +276,7 @@
     
     function buildItemHTML(item, id) {
         let timespan = item.endDate.diff(item.startDate, 'days');
+        let visibleTimespan = timespan;
         let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
         let x = item.startDate.date() - 1;
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
@@ -285,14 +286,15 @@
         let classes = 'item';
         if ((x + timespan) > timelineSubdivisions) {
             console.log(length);
-            length = `${(timelineSubdivisions - x) * unitWidth}px`;
+            visibleTimespan = timelineSubdivisions - x;
+            length = `${visibleTimespan * unitWidth}px`;
             console.log(x, timespan, timelineSubdivisions - x, length);
             classes += ' out-of-bounds-right';
         }
         
         let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
         if ((x + timespan) > timelineSubdivisions) console.log(style);
-        let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+        let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-visible-length=${visibleTimespan} data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
 
@@ -350,29 +352,28 @@
         let $item = $(event.target);
         let $parent = $item.parent();
         let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
-        console.log(moveOffset);
         let newXPos = $item.data('x') + moveOffset;
         let newEndPos = newXPos + $item.data('length');
         if (newEndPos > timelineSubdivisions) {
-            $item.css('width', (timelineSubdivisions - newXPos) * unitWidth);
+            $item.data('visible-length', (timelineSubdivisions - newXPos));
+            $item.css('width', $item.data('visible-length') * unitWidth);
             $item.addClass('out-of-bounds-right');
         } else if (newXPos < 0) {
             // TODO: Fix this. Does the ui.position.left need to be tracked
             // separately when x position is < 0? 🤔🤔🤔🤔
-            console.log(newXPos);
             ui.position.left += -newXPos * unitWidth;
-            let newWidth = ($item.data('length') + newXPos) * unitWidth;
-            $item.css('width', newWidth);
-            // $item.css('width', $item.data('length') * unitWidth);
+            $item.data('visible-length', $item.data('length') + newXPos);
+            $item.css('width', $item.data('visible-length') * unitWidth);
             $item.addClass('out-of-bounds-left');
         } else {
             $item.css('width', $item.data('length') * unitWidth);
             $item.removeClass('out-of-bounds-left');
             $item.removeClass('out-of-bounds-right');
         }
+
         if (event.type === 'dragstop') {
-            
-        } $item.data('x', newXPos);
+            $item.data('x', newXPos);   
+        }
     }
 
     // Find appropriate row-items container for the item and move the item to that container.
