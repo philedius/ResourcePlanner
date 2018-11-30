@@ -259,7 +259,7 @@
         switch (settings.timeline.viewType) {
             case 'month':
                 timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-                unitWidth = Math.round($timeline.outerWidth() / timelineSubdivisions);
+                unitWidth = $timeline.outerWidth() / timelineSubdivisions;
                 $timeline.append(`<div class="month">${settings.timeline.viewStart.format('MMMM')}</div><div class="day-container"></div>`);
                 let daysHTML = '';
                 for (let i = 0; i < timelineSubdivisions; i++) {
@@ -354,15 +354,17 @@
         })
 
         $('.item').on('click', (e) => {
-            let $target = $(e.currentTarget)
-            let id = $target.data('id');
-            let item = settings.data.items[id];
+            let $item = $(e.currentTarget)
+            let id = $item.data('id');
+            let item = items[id];
             console.log(item.state);
         });
 
         $('.item').on('mouseenter', (e) => {
-            let $target = $(e.currentTarget);
-            $(`.row.resource[data-row-id="${$target.data('resource-id')}"]`).addClass('highlight');
+            let $item = $(e.currentTarget);
+            let id = $item.data('id');
+            let item = items[id];
+            $(`.row.resource[data-row-id="${items[id].state.resourceId}"]`).addClass('highlight');
         });
 
         $('.item').on('mouseleave', (e) => {
@@ -425,9 +427,9 @@
             
         } else if (event.type === 'dragstop') {
             if ($item.hasClass('out-of-bounds-left')) {
-                items[id].state.x = items[id].state.lastXPos;
+                items[id].state.x = Math.round(items[id].state.lastXPos);
             } else {
-                items[id].state.x = items[id].state.lastXPos;
+                items[id].state.x = Math.round(items[id].state.lastXPos);
             }
             items[id].state.lastDroppedXPos = items[id].state.lastXPos;
         }

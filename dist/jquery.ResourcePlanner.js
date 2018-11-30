@@ -261,7 +261,7 @@
     switch (settings.timeline.viewType) {
       case 'month':
         timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-        unitWidth = Math.round($timeline.outerWidth() / timelineSubdivisions);
+        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
         $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
         var daysHTML = '';
 
@@ -357,14 +357,16 @@
       $(".row-items[data-row-id=\"".concat(id, "\"]")).append(array.join(''));
     });
     $('.item').on('click', function (e) {
-      var $target = $(e.currentTarget);
-      var id = $target.data('id');
-      var item = settings.data.items[id];
+      var $item = $(e.currentTarget);
+      var id = $item.data('id');
+      var item = items[id];
       console.log(item.state);
     });
     $('.item').on('mouseenter', function (e) {
-      var $target = $(e.currentTarget);
-      $(".row.resource[data-row-id=\"".concat($target.data('resource-id'), "\"]")).addClass('highlight');
+      var $item = $(e.currentTarget);
+      var id = $item.data('id');
+      var item = items[id];
+      $(".row.resource[data-row-id=\"".concat(items[id].state.resourceId, "\"]")).addClass('highlight');
     });
     $('.item').on('mouseleave', function (e) {
       $('.row.resource').removeClass('highlight');
@@ -426,9 +428,9 @@
       setItemWidth($item, items[id].state.visibleLength);
     } else if (event.type === 'dragstop') {
       if ($item.hasClass('out-of-bounds-left')) {
-        items[id].state.x = items[id].state.lastXPos;
+        items[id].state.x = Math.round(items[id].state.lastXPos);
       } else {
-        items[id].state.x = items[id].state.lastXPos;
+        items[id].state.x = Math.round(items[id].state.lastXPos);
       }
 
       items[id].state.lastDroppedXPos = items[id].state.lastXPos;

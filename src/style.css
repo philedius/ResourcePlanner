@@ -13,7 +13,7 @@ html, body {
     Resource Planner Styling
 */
 
-.resource-planner div {
+.resource-planner * {
     display: flex;
     box-sizing: border-box;
 }
@@ -82,6 +82,7 @@ html, body {
 .scroll-container {
     /* height: calc(500px - 50px); */
     overflow-y: scroll;
+    overflow-x: hidden;
     display: flex;
     flex-direction: row;
 }
@@ -131,6 +132,7 @@ html, body {
     top: 0px;
     cursor: pointer;
     user-select: none;
+    transition: opacity .1s;
 }
 
 .item-content {
@@ -142,9 +144,11 @@ html, body {
     margin: 4px 2px;
     padding-left: 6px;
     box-sizing: border-box;
-    border-radius: 6px;
+    border-radius: 100px;
     overflow: hidden;
     white-space: nowrap;
+    border: 2px solid transparent;
+    transition: .05s ease;
 }
 
 .row-items {
@@ -152,8 +156,12 @@ html, body {
 }
 
 .item:hover {
-    opacity: .9;
+    opacity: .85;
     z-index: 10;
+}
+
+.item:hover .item-content {
+    border: 2px solid rgb(162, 167, 184);
 }
 
 .item.out-of-bounds-left .item-content {
