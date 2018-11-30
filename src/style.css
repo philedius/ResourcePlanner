@@ -172,3 +172,9 @@ html, body {
     background: hsl(220, 25%, 95%) !important;
     color: black;
 }
+
+.emoji {
+    font-size: 1.25em;
+    padding-right: .25em;
+    /* display: none; */
+}

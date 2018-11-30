@@ -78,58 +78,56 @@
         'Diaz',
     ];
     var eventTitles = [
-        'Basking in glory',
-        'Being because of thinking',
-        'Brewing a storm',
-        'Bringing justice',
-        'Brooding',
-        'Building an evil lair',
-        'Buying milk',
-        'Cancelling beloved TV shows',
-        'Cashing checks',
-        'Christening a ship',
-        'Conducting a voodoo ritual',
-        'Couchsurfing',
-        'Crashing a party',
-        'Dancing on the graves of enemies',
-        'Decombobulating',
-        'Delivering babies',
-        'Doctor\'s appointment',
-        'Doing somersaults',
-        'Dressing monkeys',
-        'Dropping beats',
-        'Escaping prison',
-        'Fending off bees',
-        'Fighting crime',
-        'Fighting dinosaurs',
-        'Filling out TPS reports',
-        'Flexing muscles',
-        'Flying a boat',
-        'Fraternizing with the enemy',
-        'Getting bitten by a radioactive spider',
-        'Making gravy',
-        'Moving mountains',
-        'On a business trip down memory lane',
-        'On staycation',
-        'On vacation',
-        'Playing the cello',
-        'Procrastinating',
-        'Reinventing the wheel',
-        'Ruining Christmas',
-        'Running for president',
-        'Saving the world',
-        'Soul searching',
-        'Straight up clowning',
-        'Taking out the trash',
-        'Taking over the world',
-        'That work thing',
-        'Ushering souls',
-        'Walking on sunshine',
-        'Wasting time',
-        'Watching a movie',
-        'Writing a diss track',
-        'Writing placeholder text',
-        'Yo-Yo-ing',
+        '<span class="emoji">😎</span> Basking in glory',
+        '<span class="emoji">🤔</span> Being because of thinking',
+        '<span class="emoji">💨</span> Brewing a storm',
+        '<span class="emoji">🍝</span> Serving justice',
+        '<span class="emoji">😡</span> Brooding',
+        '<span class="emoji">😈</span> Building an evil lair',
+        '<span class="emoji">🥛</span> Buying milk',
+        '<span class="emoji">📺</span> Cancelling beloved TV shows',
+        '<span class="emoji">💰</span> Cashing checks',
+        '<span class="emoji">⛪</span> Christening a ship',
+        '<span class="emoji">💥</span> Conducting a voodoo ritual',
+        '<span class="emoji">🏄</span>‍ Couchsurfing',
+        '<span class="emoji">🎉</span> Crashing a party',
+        '<span class="emoji">💃</span> Dancing on the graves of enemies',
+        '<span class="emoji">✨</span> Decombobulating',
+        '<span class="emoji">👶</span> Delivering babies',
+        '<span class="emoji">🏥</span>‍ Doctor\'s appointment',
+        '<span class="emoji">🐵</span> Dressing monkeys',
+        '<span class="emoji">🎵</span> Dropping beats',
+        '<span class="emoji">🏃‍</span> Escaping prison',
+        '<span class="emoji">🐝</span> Fending off bees',
+        '<span class="emoji">🤜</span> Fighting crime',
+        '<span class="emoji">🤜</span> Fighting dinosaurs',
+        '<span class="emoji">📝</span>Filling out TPS reports',
+        '<span class="emoji">💪</span> Flexing muscles',
+        '<span class="emoji">🚢</span> Flying a boat',
+        '<span class="emoji">😂</span> Fraternizing with the enemy',
+        '<span class="emoji">💪</span> Getting bitten by a radioactive spider',
+        '<span class="emoji">💩</span> Making gravy',
+        '<span class="emoji">🗻</span> Moving mountains',
+        '<span class="emoji">👩‍💼</span> On a business trip down memory lane',
+        '<span class="emoji">🏠</span> On staycation',
+        '<span class="emoji">🌴</span> On vacation',
+        '<span class="emoji">🎻</span> Playing the cello',
+        '<span class="emoji">👌</span> Procrastinating',
+        '<span class="emoji">💭</span> Reinventing the wheel',
+        '<span class="emoji">🎅</span> Ruining Christmas',
+        '<span class="emoji">🏃‍</span> Running for president',
+        '<span class="emoji">🌎</span> Saving the world',
+        '<span class="emoji">🔍</span> Soul searching',
+        '<span class="emoji">🤡</span> Straight up clowning',
+        '<span class="emoji">♻</span> Taking out the trash',
+        '<span class="emoji">🌎</span> Taking over the world',
+        '<span class="emoji">🏢</span> That work thing',
+        '<span class="emoji">👻</span> Ushering souls',
+        '<span class="emoji">🌞</span> Walking on sunshine',
+        '<span class="emoji">⏳</span> Wasting time',
+        '<span class="emoji">📼</span> Watching a movie',
+        '<span class="emoji">🎶</span> Writing a diss track',
+        '<span class="emoji">📝</span> Writing placeholder text',
     ];
 
     var people = [];
@@ -140,11 +138,11 @@
 
     var rp = $('#planner').ResourcePlanner({
         data: {
-            resources: people,
+            // resources: people,
             items: events
         },
         size: {
-            height: 800
+            height: 500
         }
     });
 
@@ -160,14 +158,13 @@
             });
         }
 
-        for (var i = 0; i < 30; i++) {
+        for (var i = 0; i < 130; i++) {
             var startDate = 1 + Math.floor(Math.random() * 40);
-            var endDate = startDate + Math.ceil(Math.random() * 10);
+            var endDate = startDate + 1 + Math.ceil(Math.random() * 10);
             
             events.push({
                 title: eventTitles[i % eventTitles.length],
-                responsible: people[i % people.length],
-                // responsible: people[Math.floor(Math.random() * people.length)],
+                resource: people[i % people.length],
                 startDate: dayjs('2018/11/01').add(startDate, 'day'),
                 endDate: dayjs('2018/11/01').add(endDate, 'day')
             });

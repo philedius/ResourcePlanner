@@ -13,8 +13,10 @@
     let unitHeight = 32;
     let resources;
     let items;
+    let itemsChanged = [];
     let settings;
     let lastInnerWidth;
+    let dragLeft;
 
     $.fn.ResourcePlanner = function (options) {
         $planner = this;
@@ -45,25 +47,47 @@
                 highlightToday: false // TODO:
             },
             data: {
-                resources: [],
+                // resources: [],
                 items: []
 
             },
+            // palette: [
+            //     'hsl(206, 78%, 51%)',
+            //     'hsl(0, 67%, 56%)',
+            //     'hsl(193, 6%, 27%)',
+            //     'hsl(39, 97%, 68%)',
+            //     'hsl(247, 74%, 67%)',
+            //     'hsl(168, 76%, 43%)',
+            // ]
             palette: [
-                'hsl(206, 78%, 51%)',
-                'hsl(0, 67%, 56%)',
-                'hsl(193, 6%, 27%)',
-                'hsl(39, 97%, 68%)',
-                'hsl(247, 74%, 67%)',
-                'hsl(168, 76%, 43%)',
+                'hsl(206, 81%, 58%)',
+                'hsl(0, 75%, 60%)',
+                'hsl(193, 8%, 27%)',
+                'hsl(39, 100%, 65%)',
+                'hsl(247, 80%, 74%)',
+                'hsl(168, 78%, 48%)',
             ]
         }, options);
 
         console.log('settings:\n', settings);
-        if (settings.data.resources) resources = settings.data.resources;
-        if (settings.data.items) items = settings.data.items;
+        if (settings.data.items) {
+            items = settings.data.items;
+            items.forEach(item => {
+                item.state = {
+                    x: 0,
+                    y: 0,
+                    length: 0,
+                    visibleLength: 0,
+                    resourceId: 0,
+                    lastXPos: undefined,
+                    lastDroppedXPos: undefined
+                };
+            });
+            resources = extractResources();
+        } else {
+            console.error('Missing data for resource planner');
+        }
         let setupTimeStart = performance.now();
-
         setupTimeline(settings);
         setupGrid(settings);
         let collisionTimeStart = performance.now();
@@ -77,6 +101,14 @@
         return this;
     }
 
+    function extractResources() {
+        let res = {};
+        items.forEach(item => {
+            if (!res[item.resource.id]) res[item.resource.id] = item.resource;
+        });
+        return res;
+    }
+
     function handleWindowResize() {
         lastInnerWidth = window.innerWidth;
         $(window).on('resize', () => {
@@ -86,11 +118,19 @@
             // But this can be changed to use Math.floor again if needed.
             unitWidth = $grid.width() / timelineSubdivisions;
             $('.item').each((index, item) => {
-                $(item).css('width', ($(item).data('visible-length') * unitWidth));
-                $(item).css('left', ($(item).data('x') * unitWidth));
+                let id = $(item).data('id');
+                $(item).css('width', items[id].state.visibleLength * unitWidth);
+                $(item).css('left', items[id].state.x * unitWidth);
                 $(item).draggable({
                     grid: [unitWidth, unitHeight],
+                    dragging: handleHorizontalItemDragging,
                     stop: handleItemDragging,
+                });
+                $(item).resizable({
+                    minWidth: unitWidth,
+                    grid: [unitWidth, unitHeight],
+                    handles: 'e, w',
+                    stop: handleItemResizing,
                 });
             });
             scaleTimelineWidth();
@@ -138,14 +178,14 @@
 
     function checkOverlapInRow(rowIndex) {
         let rowItems = $(`.row-items[data-row-id="${rowIndex}"] .item`).map((index, item) => {
+            let itemId = $(item).data('id');
             return {
-                id: $(item).data('id'),
-                xPos: $(item).data('x'),
-                length: $(item).data('length'),
+                id: itemId,
+                xPos: items[itemId].state.x,
+                length: items[itemId].state.length,
                 subRow: 0
             }
         });
-
         // Sort items first by date, then by length.
         rowItems.sort((a, b) => {
             if (b.xPos > a.xPos) return -1;
@@ -236,19 +276,17 @@
     }
 
     function setupGrid(settings) {
-        let resources = settings.data.resources;
-        let items = settings.data.items;
         $grid.append('<div class="content"></div>');
         $content = $grid.find('.content');
         let resourcesHTML = '';
         let gridHTML = '';
         let rowItemsHTML = '';
-        for (let i = 0; i < resources.length; i++) {
-            let resource = resources[i];
-            resourcesHTML += `<div class="row resource" data-row-id="${resource.id}">${resource.name}</div>`;
-            gridHTML += `<div class="row grid-row" data-row-id="${resource.id}"></div>`;
-            rowItemsHTML += `<div class="row-items" data-row-id="${resource.id}"></div>`;
-        }
+        
+        $.each(resources, (id, resource) => {
+            resourcesHTML += `<div class="row resource" data-row-id="${id}">${resource.name}</div>`;
+            gridHTML += `<div class="row grid-row" data-row-id="${id}"></div>`;
+            rowItemsHTML += `<div class="row-items" data-row-id="${id}"></div>`;
+        });
 
         $resources.append(resourcesHTML);
         $grid.append(gridHTML);
@@ -274,34 +312,38 @@
         return resourceHeight;
     }
     
+    // TODO: Change function name and split up for semantics
     function buildItemHTML(item, id) {
-        let timespan = item.endDate.diff(item.startDate, 'days');
-        let visibleTimespan = timespan;
-        let rowIndex = $(`.resource[data-row-id="${item.responsible.id}"]`).index();
+        let length = item.endDate.diff(item.startDate, 'days');
+        let visibleLength = length;
+        let y = $(`.resource[data-row-id="${item.resource.id}"]`).index();
         let x = item.startDate.date() - 1;
         let left = `${(item.startDate.date() - 1) * unitWidth}px`;
-        let length = `${timespan * unitWidth}px`;
-        let contentStyle = `background: ${settings.palette[rowIndex % settings.palette.length]};`
+        let pxLength = `${length * unitWidth}px`;
+        let contentStyle = `background: ${settings.palette[y % settings.palette.length]};`
         let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`;
         let classes = 'item';
-        if ((x + timespan) > timelineSubdivisions) {
-            console.log(length);
-            visibleTimespan = timelineSubdivisions - x;
-            length = `${visibleTimespan * unitWidth}px`;
-            console.log(x, timespan, timelineSubdivisions - x, length);
+        if ((x + length) > timelineSubdivisions) {
+            visibleLength = timelineSubdivisions - x;
+            pxLength = `${visibleLength * unitWidth}px`;
             classes += ' out-of-bounds-right';
+            itemContent = `<div class="item-content" style="${contentStyle}"><span class="emoji out-of-bounds-right-emoji">👉</span>${item.title}</div>`;
         }
-        
-        let style = `left: ${left}; width: ${length}; height: ${unitHeight}px;`;
-        if ((x + timespan) > timelineSubdivisions) console.log(style);
-        let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${rowIndex}" data-length="${timespan}" data-visible-length=${visibleTimespan} data-resource-id="${item.responsible.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+        item.state.length = length;
+        item.state.visibleLength = visibleLength;
+        item.state.x = x;
+        item.state.y = y;
+        item.state.resourceId = item.resource.id;
+        let style = `left: ${left}; width: ${pxLength}; height: ${unitHeight}px;`;
+        // let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${y}" data-length="${length}" data-visible-length=${visibleLength} data-resource-id="${item.resource.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+        let html = `<div class="${classes}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
 
     function setupItems(items) {
         let rowItems = {};
         for (let i = 0; i < items.length; i++) {
-            let rowId = items[i].responsible.id;
+            let rowId = items[i].resource.id;
             if (!rowItems[rowId]) rowItems[rowId] = [];
             let itemHTML = buildItemHTML(items[i], i);
             rowItems[rowId].push(itemHTML);
@@ -315,7 +357,7 @@
             let $target = $(e.currentTarget)
             let id = $target.data('id');
             let item = settings.data.items[id];
-            console.log($target.data('length'), item.endDate.diff(item.startDate, 'days'));
+            console.log(item.state);
         });
 
         $('.item').on('mouseenter', (e) => {
@@ -333,14 +375,12 @@
             stop: handleItemDragging,
         });
 
-        $('.item').each(function() {
-            $(this).resizable({
-                minWidth: unitWidth,
-                grid: [unitWidth, unitHeight],
-                handles: 'e, w',
-                stop: handleItemResizing,
-            });
-        })
+        $('.item').resizable({
+            minWidth: unitWidth,
+            grid: [unitWidth, unitHeight],
+            handles: 'e, w',
+            stop: handleItemResizing,
+        });
     }
     
     function handleItemDragging(event, ui) {
@@ -350,30 +390,52 @@
 
     function handleHorizontalItemDragging(event, ui) {
         let $item = $(event.target);
-        let $parent = $item.parent();
+        let id = $item.data('id');
         let moveOffset = ((ui.originalPosition.left - ui.position.left) / unitWidth) * -1;
-        let newXPos = $item.data('x') + moveOffset;
-        let newEndPos = newXPos + $item.data('length');
-        if (newEndPos > timelineSubdivisions) {
-            $item.data('visible-length', (timelineSubdivisions - newXPos));
-            $item.css('width', $item.data('visible-length') * unitWidth);
-            $item.addClass('out-of-bounds-right');
-        } else if (newXPos < 0) {
-            // TODO: Fix this. Does the ui.position.left need to be tracked
-            // separately when x position is < 0? 🤔🤔🤔🤔
-            ui.position.left += -newXPos * unitWidth;
-            $item.data('visible-length', $item.data('length') + newXPos);
-            $item.css('width', $item.data('visible-length') * unitWidth);
-            $item.addClass('out-of-bounds-left');
-        } else {
-            $item.css('width', $item.data('length') * unitWidth);
-            $item.removeClass('out-of-bounds-left');
-            $item.removeClass('out-of-bounds-right');
-        }
+        let newXPos = items[id].state.x + moveOffset;
 
-        if (event.type === 'dragstop') {
-            $item.data('x', newXPos);   
+        if (event.type === 'drag') {
+            items[id].state.lastXPos = newXPos;
+            if (items[id].state.lastDroppedXPos < 0) ui.position.left += items[id].state.lastDroppedXPos * unitWidth;
+            let newEndPos = newXPos + items[id].state.length;
+            let outOfBoundsLeft = newXPos < 0;
+            let outOfBoundsRight = newEndPos > timelineSubdivisions;
+            if (outOfBoundsLeft) {
+                ui.position.left = 0;
+                items[id].state.visibleLength = items[id].state.length + newXPos;
+                if (!$item.hasClass('out-of-bounds-left')) {
+                    $item.addClass('out-of-bounds-left');
+                    $item.find('.item-content').prepend('<span class="emoji out-of-bounds-left-emoji">👈</span>');
+                }
+                
+            } else if (outOfBoundsRight) {
+                items[id].state.visibleLength = timelineSubdivisions - newXPos;
+                if (!$item.hasClass('out-of-bounds-right')) {
+                    $item.addClass('out-of-bounds-right');
+                    $item.find('.item-content').prepend('<span class="emoji out-of-bounds-right-emoji">👉</span>');
+                }
+            } else {
+                items[id].state.visibleLength = items[id].state.length;
+                $item.removeClass('out-of-bounds-left');
+                $item.removeClass('out-of-bounds-right');
+                $item.find('.out-of-bounds-left-emoji').remove();
+                $item.find('.out-of-bounds-right-emoji').remove();
+            }
+            setItemWidth($item, items[id].state.visibleLength);
+            
+        } else if (event.type === 'dragstop') {
+            if ($item.hasClass('out-of-bounds-left')) {
+                items[id].state.x = items[id].state.lastXPos;
+            } else {
+                items[id].state.x = items[id].state.lastXPos;
+            }
+            items[id].state.lastDroppedXPos = items[id].state.lastXPos;
         }
+        
+    }
+
+    function setItemWidth($item, units) {
+        $item.css('width', units * unitWidth);
     }
 
     // Find appropriate row-items container for the item and move the item to that container.
@@ -407,14 +469,16 @@
 
     function handleItemResizing(event, ui) {
         let $item = $(event.target);
+        let id = $item.data('id');
         let $parent = $item.parent();
         let moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
         let widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
-        let newXPos = $item.data('x') + moveOffset;
-        let newLength = $item.data('length') + widthChange;
-        console.log(newXPos, newLength);
-        $item.data('x', newXPos);
-        $item.data('length', newLength)
+        let newXPos = items[id].state.x + moveOffset;
+        let newLength = Math.round(items[id].state.length + widthChange);
+        let newVisibleLength = Math.round(items[id].state.visibleLength + widthChange);
+        items[id].state.x = newXPos;
+        items[id].state.length = newLength;
+        items[id].state.visibleLength = newVisibleLength;
         handleOverlap($parent.index());
     }
 
@@ -437,7 +501,7 @@
 
     function setParent($item, $parent) {
         $parent.append($item);
-        $item.data('resource-id', $parent.data('row-id'));
+        items[$item.data('id')].state.resourceId = $parent.data('row-id');
     }
 
 })(jQuery);

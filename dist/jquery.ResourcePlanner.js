@@ -15,8 +15,10 @@
   var unitHeight = 32;
   var resources;
   var items;
+  var itemsChanged = [];
   var settings;
   var lastInnerWidth;
+  var dragLeft;
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
@@ -46,14 +48,39 @@
 
       },
       data: {
-        resources: [],
+        // resources: [],
         items: []
       },
-      palette: ['hsl(206, 78%, 51%)', 'hsl(0, 67%, 56%)', 'hsl(193, 6%, 27%)', 'hsl(39, 97%, 68%)', 'hsl(247, 74%, 67%)', 'hsl(168, 76%, 43%)']
+      // palette: [
+      //     'hsl(206, 78%, 51%)',
+      //     'hsl(0, 67%, 56%)',
+      //     'hsl(193, 6%, 27%)',
+      //     'hsl(39, 97%, 68%)',
+      //     'hsl(247, 74%, 67%)',
+      //     'hsl(168, 76%, 43%)',
+      // ]
+      palette: ['hsl(206, 81%, 58%)', 'hsl(0, 75%, 60%)', 'hsl(193, 8%, 27%)', 'hsl(39, 100%, 65%)', 'hsl(247, 80%, 74%)', 'hsl(168, 78%, 48%)']
     }, options);
     console.log('settings:\n', settings);
-    if (settings.data.resources) resources = settings.data.resources;
-    if (settings.data.items) items = settings.data.items;
+
+    if (settings.data.items) {
+      items = settings.data.items;
+      items.forEach(function (item) {
+        item.state = {
+          x: 0,
+          y: 0,
+          length: 0,
+          visibleLength: 0,
+          resourceId: 0,
+          lastXPos: undefined,
+          lastDroppedXPos: undefined
+        };
+      });
+      resources = extractResources();
+    } else {
+      console.error('Missing data for resource planner');
+    }
+
     var setupTimeStart = performance.now();
     setupTimeline(settings);
     setupGrid(settings);
@@ -67,6 +94,14 @@
     return this;
   };
 
+  function extractResources() {
+    var res = {};
+    items.forEach(function (item) {
+      if (!res[item.resource.id]) res[item.resource.id] = item.resource;
+    });
+    return res;
+  }
+
   function handleWindowResize() {
     lastInnerWidth = window.innerWidth;
     $(window).on('resize', function () {
@@ -76,11 +111,19 @@
 
       unitWidth = $grid.width() / timelineSubdivisions;
       $('.item').each(function (index, item) {
-        $(item).css('width', $(item).data('visible-length') * unitWidth);
-        $(item).css('left', $(item).data('x') * unitWidth);
+        var id = $(item).data('id');
+        $(item).css('width', items[id].state.visibleLength * unitWidth);
+        $(item).css('left', items[id].state.x * unitWidth);
         $(item).draggable({
           grid: [unitWidth, unitHeight],
+          dragging: handleHorizontalItemDragging,
           stop: handleItemDragging
+        });
+        $(item).resizable({
+          minWidth: unitWidth,
+          grid: [unitWidth, unitHeight],
+          handles: 'e, w',
+          stop: handleItemResizing
         });
       });
       scaleTimelineWidth();
@@ -129,10 +172,11 @@
 
   function checkOverlapInRow(rowIndex) {
     var rowItems = $(".row-items[data-row-id=\"".concat(rowIndex, "\"] .item")).map(function (index, item) {
+      var itemId = $(item).data('id');
       return {
-        id: $(item).data('id'),
-        xPos: $(item).data('x'),
-        length: $(item).data('length'),
+        id: itemId,
+        xPos: items[itemId].state.x,
+        length: items[itemId].state.length,
         subRow: 0
       };
     }); // Sort items first by date, then by length.
@@ -236,21 +280,16 @@
   }
 
   function setupGrid(settings) {
-    var resources = settings.data.resources;
-    var items = settings.data.items;
     $grid.append('<div class="content"></div>');
     $content = $grid.find('.content');
     var resourcesHTML = '';
     var gridHTML = '';
     var rowItemsHTML = '';
-
-    for (var i = 0; i < resources.length; i++) {
-      var resource = resources[i];
-      resourcesHTML += "<div class=\"row resource\" data-row-id=\"".concat(resource.id, "\">").concat(resource.name, "</div>");
-      gridHTML += "<div class=\"row grid-row\" data-row-id=\"".concat(resource.id, "\"></div>");
-      rowItemsHTML += "<div class=\"row-items\" data-row-id=\"".concat(resource.id, "\"></div>");
-    }
-
+    $.each(resources, function (id, resource) {
+      resourcesHTML += "<div class=\"row resource\" data-row-id=\"".concat(id, "\">").concat(resource.name, "</div>");
+      gridHTML += "<div class=\"row grid-row\" data-row-id=\"".concat(id, "\"></div>");
+      rowItemsHTML += "<div class=\"row-items\" data-row-id=\"".concat(id, "\"></div>");
+    });
     $resources.append(resourcesHTML);
     $grid.append(gridHTML);
     $content.append(rowItemsHTML);
@@ -272,30 +311,35 @@
       resourceHeight += $(resource).outerHeight();
     });
     return resourceHeight;
-  }
+  } // TODO: Change function name and split up for semantics
+
 
   function buildItemHTML(item, id) {
-    var timespan = item.endDate.diff(item.startDate, 'days');
-    var visibleTimespan = timespan;
-    var rowIndex = $(".resource[data-row-id=\"".concat(item.responsible.id, "\"]")).index();
+    var length = item.endDate.diff(item.startDate, 'days');
+    var visibleLength = length;
+    var y = $(".resource[data-row-id=\"".concat(item.resource.id, "\"]")).index();
     var x = item.startDate.date() - 1;
     var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
-    var length = "".concat(timespan * unitWidth, "px");
-    var contentStyle = "background: ".concat(settings.palette[rowIndex % settings.palette.length], ";");
+    var pxLength = "".concat(length * unitWidth, "px");
+    var contentStyle = "background: ".concat(settings.palette[y % settings.palette.length], ";");
     var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
     var classes = 'item';
 
-    if (x + timespan > timelineSubdivisions) {
-      console.log(length);
-      visibleTimespan = timelineSubdivisions - x;
-      length = "".concat(visibleTimespan * unitWidth, "px");
-      console.log(x, timespan, timelineSubdivisions - x, length);
+    if (x + length > timelineSubdivisions) {
+      visibleLength = timelineSubdivisions - x;
+      pxLength = "".concat(visibleLength * unitWidth, "px");
       classes += ' out-of-bounds-right';
+      itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\"><span class=\"emoji out-of-bounds-right-emoji\">\uD83D\uDC49</span>").concat(item.title, "</div>");
     }
 
-    var style = "left: ".concat(left, "; width: ").concat(length, "; height: ").concat(unitHeight, "px;");
-    if (x + timespan > timelineSubdivisions) console.log(style);
-    var html = "<div class=\"".concat(classes, "\" data-x=\"").concat(item.startDate.date() - 1, "\" data-y=\"").concat(rowIndex, "\" data-length=\"").concat(timespan, "\" data-visible-length=").concat(visibleTimespan, " data-resource-id=\"").concat(item.responsible.id, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
+    item.state.length = length;
+    item.state.visibleLength = visibleLength;
+    item.state.x = x;
+    item.state.y = y;
+    item.state.resourceId = item.resource.id;
+    var style = "left: ".concat(left, "; width: ").concat(pxLength, "; height: ").concat(unitHeight, "px;"); // let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${y}" data-length="${length}" data-visible-length=${visibleLength} data-resource-id="${item.resource.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
+
+    var html = "<div class=\"".concat(classes, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
 
@@ -303,7 +347,7 @@
     var rowItems = {};
 
     for (var i = 0; i < items.length; i++) {
-      var rowId = items[i].responsible.id;
+      var rowId = items[i].resource.id;
       if (!rowItems[rowId]) rowItems[rowId] = [];
       var itemHTML = buildItemHTML(items[i], i);
       rowItems[rowId].push(itemHTML);
@@ -316,7 +360,7 @@
       var $target = $(e.currentTarget);
       var id = $target.data('id');
       var item = settings.data.items[id];
-      console.log($target.data('length'), item.endDate.diff(item.startDate, 'days'));
+      console.log(item.state);
     });
     $('.item').on('mouseenter', function (e) {
       var $target = $(e.currentTarget);
@@ -330,13 +374,11 @@
       drag: handleHorizontalItemDragging,
       stop: handleItemDragging
     });
-    $('.item').each(function () {
-      $(this).resizable({
-        minWidth: unitWidth,
-        grid: [unitWidth, unitHeight],
-        handles: 'e, w',
-        stop: handleItemResizing
-      });
+    $('.item').resizable({
+      minWidth: unitWidth,
+      grid: [unitWidth, unitHeight],
+      handles: 'e, w',
+      stop: handleItemResizing
     });
   }
 
@@ -347,31 +389,54 @@
 
   function handleHorizontalItemDragging(event, ui) {
     var $item = $(event.target);
-    var $parent = $item.parent();
+    var id = $item.data('id');
     var moveOffset = (ui.originalPosition.left - ui.position.left) / unitWidth * -1;
-    var newXPos = $item.data('x') + moveOffset;
-    var newEndPos = newXPos + $item.data('length');
+    var newXPos = items[id].state.x + moveOffset;
 
-    if (newEndPos > timelineSubdivisions) {
-      $item.data('visible-length', timelineSubdivisions - newXPos);
-      $item.css('width', $item.data('visible-length') * unitWidth);
-      $item.addClass('out-of-bounds-right');
-    } else if (newXPos < 0) {
-      // TODO: Fix this. Does the ui.position.left need to be tracked
-      // separately when x position is < 0? 🤔🤔🤔🤔
-      ui.position.left += -newXPos * unitWidth;
-      $item.data('visible-length', $item.data('length') + newXPos);
-      $item.css('width', $item.data('visible-length') * unitWidth);
-      $item.addClass('out-of-bounds-left');
-    } else {
-      $item.css('width', $item.data('length') * unitWidth);
-      $item.removeClass('out-of-bounds-left');
-      $item.removeClass('out-of-bounds-right');
-    }
+    if (event.type === 'drag') {
+      items[id].state.lastXPos = newXPos;
+      if (items[id].state.lastDroppedXPos < 0) ui.position.left += items[id].state.lastDroppedXPos * unitWidth;
+      var newEndPos = newXPos + items[id].state.length;
+      var outOfBoundsLeft = newXPos < 0;
+      var outOfBoundsRight = newEndPos > timelineSubdivisions;
 
-    if (event.type === 'dragstop') {
-      $item.data('x', newXPos);
+      if (outOfBoundsLeft) {
+        ui.position.left = 0;
+        items[id].state.visibleLength = items[id].state.length + newXPos;
+
+        if (!$item.hasClass('out-of-bounds-left')) {
+          $item.addClass('out-of-bounds-left');
+          $item.find('.item-content').prepend('<span class="emoji out-of-bounds-left-emoji">👈</span>');
+        }
+      } else if (outOfBoundsRight) {
+        items[id].state.visibleLength = timelineSubdivisions - newXPos;
+
+        if (!$item.hasClass('out-of-bounds-right')) {
+          $item.addClass('out-of-bounds-right');
+          $item.find('.item-content').prepend('<span class="emoji out-of-bounds-right-emoji">👉</span>');
+        }
+      } else {
+        items[id].state.visibleLength = items[id].state.length;
+        $item.removeClass('out-of-bounds-left');
+        $item.removeClass('out-of-bounds-right');
+        $item.find('.out-of-bounds-left-emoji').remove();
+        $item.find('.out-of-bounds-right-emoji').remove();
+      }
+
+      setItemWidth($item, items[id].state.visibleLength);
+    } else if (event.type === 'dragstop') {
+      if ($item.hasClass('out-of-bounds-left')) {
+        items[id].state.x = items[id].state.lastXPos;
+      } else {
+        items[id].state.x = items[id].state.lastXPos;
+      }
+
+      items[id].state.lastDroppedXPos = items[id].state.lastXPos;
     }
+  }
+
+  function setItemWidth($item, units) {
+    $item.css('width', units * unitWidth);
   } // Find appropriate row-items container for the item and move the item to that container.
   // Then check for collisions in original container the item was in and the new container.
 
@@ -407,14 +472,16 @@
 
   function handleItemResizing(event, ui) {
     var $item = $(event.target);
+    var id = $item.data('id');
     var $parent = $item.parent();
     var moveOffset = (ui.position.left - ui.originalPosition.left) / unitWidth;
     var widthChange = (ui.size.width - ui.originalSize.width) / unitWidth;
-    var newXPos = $item.data('x') + moveOffset;
-    var newLength = $item.data('length') + widthChange;
-    console.log(newXPos, newLength);
-    $item.data('x', newXPos);
-    $item.data('length', newLength);
+    var newXPos = items[id].state.x + moveOffset;
+    var newLength = Math.round(items[id].state.length + widthChange);
+    var newVisibleLength = Math.round(items[id].state.visibleLength + widthChange);
+    items[id].state.x = newXPos;
+    items[id].state.length = newLength;
+    items[id].state.visibleLength = newVisibleLength;
     handleOverlap($parent.index());
   } // Recursively find new parent based on item position. Start by checking closest parent in the
   // direction that the item was moved. Then checks the next and so and and so forth, until the 
@@ -438,6 +505,6 @@
 
   function setParent($item, $parent) {
     $parent.append($item);
-    $item.data('resource-id', $parent.data('row-id'));
+    items[$item.data('id')].state.resourceId = $parent.data('row-id');
   }
 })(jQuery);
