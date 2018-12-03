@@ -17,6 +17,7 @@
     let settings;
     let lastInnerWidth;
     let dragLeft;
+    let viewStartDate;
 
     $.fn.ResourcePlanner = function (options) {
         $planner = this;
@@ -51,14 +52,6 @@
                 items: []
 
             },
-            // palette: [
-            //     'hsl(206, 78%, 51%)',
-            //     'hsl(0, 67%, 56%)',
-            //     'hsl(193, 6%, 27%)',
-            //     'hsl(39, 97%, 68%)',
-            //     'hsl(247, 74%, 67%)',
-            //     'hsl(168, 76%, 43%)',
-            // ]
             palette: [
                 'hsl(206, 81%, 58%)',
                 'hsl(0, 75%, 60%)',
@@ -120,7 +113,11 @@
             $('.item').each((index, item) => {
                 let id = $(item).data('id');
                 $(item).css('width', items[id].state.visibleLength * unitWidth);
-                $(item).css('left', items[id].state.x * unitWidth);
+                if (items[id].state.x < 0) {
+                    $(item).css('left', 0);
+                } else {
+                    $(item).css('left', items[id].state.x * unitWidth);
+                }
                 $(item).draggable({
                     grid: [unitWidth, unitHeight],
                     dragging: handleHorizontalItemDragging,
@@ -258,21 +255,24 @@
     function setupTimeline(settings) {
         switch (settings.timeline.viewType) {
             case 'month':
+                viewStartDate = settings.timeline.viewStart.startOf('month');
                 timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-                unitWidth = $timeline.outerWidth() / timelineSubdivisions;
-                $timeline.append(`<div class="month">${settings.timeline.viewStart.format('MMMM')}</div><div class="day-container"></div>`);
-                let daysHTML = '';
-                for (let i = 0; i < timelineSubdivisions; i++) {
-                    daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;">${i + 1}</div>`;
-                }
-                $timeline.find('.day-container').append(daysHTML);
-                $('.day').css('width', unitWidth);
-                $('.month').css('width', unitWidth * timelineSubdivisions);
                 break;
-
+            case 'three months':
+                viewStartDate = settings.timeline.viewStart.subtract(2, 'month').startOf('month');
+                timelineSubdivisions = 90;
             default:
                 break;
         }
+        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
+        $timeline.append(`<div class="month">${settings.timeline.viewStart.format('MMMM')}</div><div class="day-container"></div>`);
+        let daysHTML = '';
+        for (let i = 0; i < timelineSubdivisions; i++) {
+            daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;">${i + 1}</div>`;
+        }
+        $timeline.find('.day-container').append(daysHTML);
+        $('.day').css('width', unitWidth);
+        $('.month').css('width', unitWidth * timelineSubdivisions);
     }
 
     function setupGrid(settings) {
@@ -317,12 +317,23 @@
         let length = item.endDate.diff(item.startDate, 'days');
         let visibleLength = length;
         let y = $(`.resource[data-row-id="${item.resource.id}"]`).index();
-        let x = item.startDate.date() - 1;
-        let left = `${(item.startDate.date() - 1) * unitWidth}px`;
+        let x = item.startDate.diff(viewStartDate, 'days');
+        let left = `${x * unitWidth}px`;
         let pxLength = `${length * unitWidth}px`;
         let contentStyle = `background: ${settings.palette[y % settings.palette.length]};`
         let itemContent = `<div class="item-content" style="${contentStyle}">${item.title}</div>`;
         let classes = 'item';
+        if (x < 0) {
+            visibleLength = x + length > 0 ? x + length : 0;
+            if (visibleLength === 0) {
+                console.log(item.endDate.format('MM'));
+                return '';
+            }
+            left = 0;
+            pxLength = `${visibleLength * unitWidth}px`;
+            classes += ' out-of-bounds-left';
+            itemContent = `<div class="item-content" style="${contentStyle}"><span class="emoji out-of-bounds-left-emoji">👈</span>${item.title}</div>`;
+        }
         if ((x + length) > timelineSubdivisions) {
             visibleLength = timelineSubdivisions - x;
             pxLength = `${visibleLength * unitWidth}px`;
@@ -357,18 +368,28 @@
             let $item = $(e.currentTarget)
             let id = $item.data('id');
             let item = items[id];
-            console.log(item.state);
+            console.log('click', item);
+        });
+
+        $('.item').on('dblclick', (e) => {
+            let $item = $(e.currentTarget)
+            let id = $item.data('id');
+            let item = items[id];
+            console.log('dblclick', item);
         });
 
         $('.item').on('mouseenter', (e) => {
             let $item = $(e.currentTarget);
             let id = $item.data('id');
             let item = items[id];
-            $(`.row.resource[data-row-id="${items[id].state.resourceId}"]`).addClass('highlight');
+            //console.log('mouseenter', item);
         });
 
         $('.item').on('mouseleave', (e) => {
-            $('.row.resource').removeClass('highlight');
+            let $item = $(e.currentTarget);
+            let id = $item.data('id');
+            let item = items[id];
+            //console.log('mouseleave', item);
         });
 
         $('.item').draggable({

@@ -19,6 +19,7 @@
   var settings;
   var lastInnerWidth;
   var dragLeft;
+  var viewStartDate;
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
@@ -51,14 +52,6 @@
         // resources: [],
         items: []
       },
-      // palette: [
-      //     'hsl(206, 78%, 51%)',
-      //     'hsl(0, 67%, 56%)',
-      //     'hsl(193, 6%, 27%)',
-      //     'hsl(39, 97%, 68%)',
-      //     'hsl(247, 74%, 67%)',
-      //     'hsl(168, 76%, 43%)',
-      // ]
       palette: ['hsl(206, 81%, 58%)', 'hsl(0, 75%, 60%)', 'hsl(193, 8%, 27%)', 'hsl(39, 100%, 65%)', 'hsl(247, 80%, 74%)', 'hsl(168, 78%, 48%)']
     }, options);
     console.log('settings:\n', settings);
@@ -113,7 +106,13 @@
       $('.item').each(function (index, item) {
         var id = $(item).data('id');
         $(item).css('width', items[id].state.visibleLength * unitWidth);
-        $(item).css('left', items[id].state.x * unitWidth);
+
+        if (items[id].state.x < 0) {
+          $(item).css('left', 0);
+        } else {
+          $(item).css('left', items[id].state.x * unitWidth);
+        }
+
         $(item).draggable({
           grid: [unitWidth, unitHeight],
           dragging: handleHorizontalItemDragging,
@@ -260,23 +259,29 @@
   function setupTimeline(settings) {
     switch (settings.timeline.viewType) {
       case 'month':
+        viewStartDate = settings.timeline.viewStart.startOf('month');
         timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
-        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
-        $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
-        var daysHTML = '';
-
-        for (var i = 0; i < timelineSubdivisions; i++) {
-          daysHTML += "<div class=\"day\" data-index=\"".concat(i, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(i + 1, "</div>");
-        }
-
-        $timeline.find('.day-container').append(daysHTML);
-        $('.day').css('width', unitWidth);
-        $('.month').css('width', unitWidth * timelineSubdivisions);
         break;
+
+      case 'three months':
+        viewStartDate = settings.timeline.viewStart.subtract(2, 'month').startOf('month');
+        timelineSubdivisions = 90;
 
       default:
         break;
     }
+
+    unitWidth = $timeline.outerWidth() / timelineSubdivisions;
+    $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
+    var daysHTML = '';
+
+    for (var i = 0; i < timelineSubdivisions; i++) {
+      daysHTML += "<div class=\"day\" data-index=\"".concat(i, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(i + 1, "</div>");
+    }
+
+    $timeline.find('.day-container').append(daysHTML);
+    $('.day').css('width', unitWidth);
+    $('.month').css('width', unitWidth * timelineSubdivisions);
   }
 
   function setupGrid(settings) {
@@ -318,12 +323,26 @@
     var length = item.endDate.diff(item.startDate, 'days');
     var visibleLength = length;
     var y = $(".resource[data-row-id=\"".concat(item.resource.id, "\"]")).index();
-    var x = item.startDate.date() - 1;
-    var left = "".concat((item.startDate.date() - 1) * unitWidth, "px");
+    var x = item.startDate.diff(viewStartDate, 'days');
+    var left = "".concat(x * unitWidth, "px");
     var pxLength = "".concat(length * unitWidth, "px");
     var contentStyle = "background: ".concat(settings.palette[y % settings.palette.length], ";");
     var itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\">").concat(item.title, "</div>");
     var classes = 'item';
+
+    if (x < 0) {
+      visibleLength = x + length > 0 ? x + length : 0;
+
+      if (visibleLength === 0) {
+        console.log(item.endDate.format('MM'));
+        return '';
+      }
+
+      left = 0;
+      pxLength = "".concat(visibleLength * unitWidth, "px");
+      classes += ' out-of-bounds-left';
+      itemContent = "<div class=\"item-content\" style=\"".concat(contentStyle, "\"><span class=\"emoji out-of-bounds-left-emoji\">\uD83D\uDC48</span>").concat(item.title, "</div>");
+    }
 
     if (x + length > timelineSubdivisions) {
       visibleLength = timelineSubdivisions - x;
@@ -360,16 +379,23 @@
       var $item = $(e.currentTarget);
       var id = $item.data('id');
       var item = items[id];
-      console.log(item.state);
+      console.log('click', item);
+    });
+    $('.item').on('dblclick', function (e) {
+      var $item = $(e.currentTarget);
+      var id = $item.data('id');
+      var item = items[id];
+      console.log('dblclick', item);
     });
     $('.item').on('mouseenter', function (e) {
       var $item = $(e.currentTarget);
       var id = $item.data('id');
-      var item = items[id];
-      $(".row.resource[data-row-id=\"".concat(items[id].state.resourceId, "\"]")).addClass('highlight');
+      var item = items[id]; //console.log('mouseenter', item);
     });
     $('.item').on('mouseleave', function (e) {
-      $('.row.resource').removeClass('highlight');
+      var $item = $(e.currentTarget);
+      var id = $item.data('id');
+      var item = items[id]; //console.log('mouseleave', item);
     });
     $('.item').draggable({
       grid: [unitWidth, unitHeight],
