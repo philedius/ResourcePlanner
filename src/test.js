@@ -5,7 +5,7 @@ generateMockData();
 
 var rp = $('#planner').ResourcePlanner({
     timeline: {
-        viewType: 'three months',
+        viewType: 'month',
         viewStart: dayjs(),
         highlightToday: false // TODO:
     },
@@ -20,7 +20,7 @@ var rp = $('#planner').ResourcePlanner({
 function generateMockData() {
     people = [];
     events = [];
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < 40; i++) {
         var firstName = mockData.names.first[Math.floor(Math.random() * mockData.names.first.length)];
         var lastName = mockData.names.last[Math.floor(Math.random() * mockData.names.last.length)];
         people.push({
@@ -31,13 +31,13 @@ function generateMockData() {
 
     for (var i = 0; i < 200; i++) {
         var startDate = 1 + Math.floor(Math.random() * 90);
-        var endDate = startDate + 1 + Math.ceil(Math.random() * 10);
+        var endDate = startDate + 4 + Math.ceil(Math.random() * 10);
         
         events.push({
             title: mockData.events[i % mockData.events.length],
             resource: people[i % people.length],
-            startDate: dayjs('2018/09/01').add(startDate, 'day'),
-            endDate: dayjs('2018/09/01').add(endDate, 'day')
+            startDate: dayjs('2018/10/01').add(startDate, 'day'),
+            endDate: dayjs('2018/10/01').add(endDate, 'day')
         });
     }
 }

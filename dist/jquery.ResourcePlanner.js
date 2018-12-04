@@ -257,15 +257,33 @@
   }
 
   function setupTimeline(settings) {
+    var daysHTML = '';
+
     switch (settings.timeline.viewType) {
       case 'month':
         viewStartDate = settings.timeline.viewStart.startOf('month');
         timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
+
+        for (var i = 0; i < timelineSubdivisions; i++) {
+          daysHTML += "<div class=\"day\" data-index=\"".concat(i, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(i + 1, "</div>");
+        }
+
         break;
 
       case 'three months':
         viewStartDate = settings.timeline.viewStart.subtract(2, 'month').startOf('month');
-        timelineSubdivisions = 90;
+        console.log(viewStartDate);
+        var months = [viewStartDate, viewStartDate.add(1, 'month'), viewStartDate.add(2, 'month')];
+        console.log(months);
+        timelineSubdivisions = months.map(function (month) {
+          return month.daysInMonth();
+        }).reduce(function (totalDays, daysInMonth) {
+          return totalDays + daysInMonth;
+        });
+
+        for (var _i2 = 0; _i2 < timelineSubdivisions; _i2++) {
+          daysHTML += "<div class=\"day\" data-index=\"".concat(_i2, "\" style=\"width: ").concat(unitWidth, "px;\"></div>");
+        }
 
       default:
         break;
@@ -273,13 +291,7 @@
 
     unitWidth = $timeline.outerWidth() / timelineSubdivisions;
     $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
-    var daysHTML = '';
-
-    for (var i = 0; i < timelineSubdivisions; i++) {
-      daysHTML += "<div class=\"day\" data-index=\"".concat(i, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(i + 1, "</div>");
-    }
-
-    $timeline.find('.day-container').append(daysHTML);
+    $('.day-container').append(daysHTML);
     $('.day').css('width', unitWidth);
     $('.month').css('width', unitWidth * timelineSubdivisions);
   }
@@ -334,7 +346,6 @@
       visibleLength = x + length > 0 ? x + length : 0;
 
       if (visibleLength === 0) {
-        console.log(item.endDate.format('MM'));
         return '';
       }
 
@@ -475,10 +486,11 @@
     var parentTop = $parent.position().top;
     var parentBottom = parentTop + $(".resource[data-row-id=\"".concat($parent.data('row-id'), "\"]")).outerHeight();
     var itemTopInParentContext = $parent.position().top + $item.position().top;
+    console.log(ui.position.top);
 
     if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
       // Item is still in parent row
-      $item.css('top', ui.originalPosition.top);
+      $item.css('top', 0);
       handleOverlap($parent.index());
     } else if (itemTopInParentContext >= parentBottom) {
       // Item is in a row below parent

@@ -131,7 +131,7 @@ html, body {
     top: 0px;
     cursor: pointer;
     user-select: none;
-    transition: opacity .1s ease;
+    transition: opacity .1s ease, top .05s ease-out;
 }
 
 .item-content {
@@ -146,7 +146,7 @@ html, body {
     border-radius: 5px;
     overflow: hidden;
     white-space: nowrap;
-    transition: .15s ease-out;
+    transition: .15s ease-out, transform .05s ease-out;
 }
 
 .row-items {
@@ -160,6 +160,11 @@ html, body {
 
 .item:hover .item-content {
     box-shadow: 0px 1px 5px 0px #cdd2d6;
+}
+
+.item:active .item-content {
+    box-shadow: 0px 2px 6px 0px #cdd2d6;
+    transform: translateY(-1px);
 }
 
 .item.out-of-bounds-left .item-content {
