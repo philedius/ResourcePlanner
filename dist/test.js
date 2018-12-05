@@ -14,7 +14,7 @@ var rp = $('#planner').ResourcePlanner({
     items: events
   },
   size: {
-    height: 500
+    height: 800
   }
 });
 
@@ -22,23 +22,27 @@ function generateMockData() {
   people = [];
   events = [];
 
-  for (var i = 0; i < 40; i++) {
+  for (var i = 0; i < 20; i++) {
     var firstName = mockData.names.first[Math.floor(Math.random() * mockData.names.first.length)];
     var lastName = mockData.names.last[Math.floor(Math.random() * mockData.names.last.length)];
     people.push({
       name: firstName + ' ' + lastName,
       id: i
-    });
+    }); // people.push({
+    //     name: mockData.oilrigs[i % mockData.oilrigs.length],
+    //     id: i
+    // });
   }
 
-  for (var i = 0; i < 200; i++) {
-    var startDate = 1 + Math.floor(Math.random() * 90);
-    var endDate = startDate + 4 + Math.ceil(Math.random() * 10);
+  for (var i = 0; i < 580; i++) {
+    var startDate = 1 + Math.floor(Math.random() * 60);
+    var endDate = startDate + 1 + Math.ceil(Math.random() * 15);
     events.push({
       title: mockData.events[i % mockData.events.length],
+      // title: mockData.wpp[i % mockData.wpp.length],
       resource: people[i % people.length],
-      startDate: dayjs('2018/10/01').add(startDate, 'day'),
-      endDate: dayjs('2018/10/01').add(endDate, 'day')
+      startDate: dayjs('2018/11/01').add(startDate, 'day'),
+      endDate: dayjs('2018/11/01').add(endDate, 'day')
     });
   }
 }

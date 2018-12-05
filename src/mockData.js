@@ -1,4 +1,22 @@
 const mockData = {
+    oilrigs: [
+        'MAERSK INVINCIBLE',
+        'GRANE',
+        'GULLFAKS B',
+        'GULLFAKS C',
+        'VALHALL',
+        'DEEPSEA BERGEN',
+        'SONGA ENDURANCE',
+        'MAERSK INSPECTOR',
+        'SONGA EQUINOX',
+        'COSL PROMOTER'
+    ],
+    wpp: [
+        'G-13',
+        'G-14',
+        'G-15',
+        'G-16'
+    ],
     names: {
         first: [
             'Abby',
@@ -79,7 +97,7 @@ const mockData = {
         '<span class="emoji">🐝</span> Fending off bees',
         '<span class="emoji">🤜</span> Fighting crime',
         '<span class="emoji">🤜</span> Fighting dinosaurs',
-        '<span class="emoji">📝</span>Filling out TPS reports',
+        '<span class="emoji">📝</span> Filling out TPS reports',
         '<span class="emoji">💪</span> Flexing muscles',
         '<span class="emoji">🚢</span> Flying a boat',
         '<span class="emoji">😂</span> Fraternizing with the enemy',
@@ -106,5 +124,19 @@ const mockData = {
         '<span class="emoji">📼</span> Watching a movie',
         '<span class="emoji">🎶</span> Writing a diss track',
         '<span class="emoji">📝</span> Writing placeholder text',
+        '<span class="emoji">💅</span> Becoming a dictator',
+        '<span class="emoji">💅</span> Getting nails done',
+        '<span class="emoji">💃</span> Doing la Macarena',
+        '<span class="emoji">🎣</span> Fishing for compliments',
+        '<span class="emoji">🤙</span> Abolishing a government',
+        '<span class="emoji">🔫</span> Killing in the name of',
+        '<span class="emoji">😺</span> Petting cats',
+        '<span class="emoji">🐶</span> Petting dogs',
+        '<span class="emoji">👏</span> Writing snarky comments',
+        '<span class="emoji">🛀</span> Taking a bath',
+        '<span class="emoji">🎈</span> Floating down here, like they all do',
+        '<span class="emoji">🥓🥞</span> Making bacon pancakes',
+        '<span class="emoji">🍔</span> Meeting with Peter Pepper',
+        '<span class="emoji">🗾</span> Turning Japanese',
     ]
 }

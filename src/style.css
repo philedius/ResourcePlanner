@@ -187,7 +187,7 @@ html, body {
 .emoji {
     font-size: 1.25em;
     padding-right: .25em;
-    display: none;
+    /* display: none; */
 }
 
 .out-of-bounds-left-emoji,
