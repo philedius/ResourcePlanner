@@ -14,12 +14,14 @@
   var unitWidth;
   var unitHeight = 32;
   var resources;
-  var items;
+  var items = [];
   var itemsChanged = [];
   var settings;
   var lastInnerWidth;
   var dragLeft;
   var viewStartDate;
+  var firstSetup = true;
+  var detachedChildren;
 
   $.fn.ResourcePlanner = function (options) {
     $planner = this;
@@ -54,38 +56,64 @@
       },
       palette: ['hsl(206, 81%, 58%)', 'hsl(0, 75%, 60%)', 'hsl(193, 8%, 27%)', 'hsl(39, 100%, 65%)', 'hsl(247, 80%, 74%)', 'hsl(168, 78%, 48%)']
     }, options);
+    initialize();
+    $('.corner').on('click', function () {
+      if (settings.timeline.viewType === 'three months') {
+        settings.timeline.viewType = 'month';
+      } else {
+        settings.timeline.viewType = 'three months';
+      }
+
+      initialize(); // if (detachedChildren) {
+      //     setTimeout(() => {
+      //         detachedChildren.remove();
+      //         console.log('children removed!');
+      //     }, 500);
+      // }
+    });
+    return this;
+  };
+
+  function initialize() {
     console.log('settings:\n', settings);
 
-    if (settings.data.items) {
-      items = settings.data.items;
-      items.forEach(function (item) {
-        item.state = {
-          x: 0,
-          y: 0,
-          length: 0,
-          visibleLength: 0,
-          resourceId: 0,
-          lastXPos: undefined,
-          lastDroppedXPos: undefined
-        };
-      });
-      resources = extractResources();
-    } else {
-      console.error('Missing data for resource planner');
+    if (firstSetup) {
+      if (settings.data.items) {
+        console.log('YO');
+        items = settings.data.items;
+        items.forEach(function (item) {
+          item.state = {
+            x: 0,
+            y: 0,
+            length: 0,
+            visibleLength: 0,
+            resourceId: 0,
+            lastXPos: undefined,
+            lastDroppedXPos: undefined
+          };
+        });
+        resources = extractResources();
+      } else {
+        console.error('Missing data for resource planner');
+      }
     }
 
     var setupTimeStart = performance.now();
+    var setupTimelineTimeStart = performance.now();
     setupTimeline(settings);
+    console.log("Grid timeline: ".concat((performance.now() - setupTimelineTimeStart).toFixed(2), "ms"));
+    var setupGridTimeStart = performance.now();
     setupGrid(settings);
+    console.log("Grid setup: ".concat((performance.now() - setupGridTimeStart).toFixed(2), "ms"));
     var collisionTimeStart = performance.now();
     handleOverlap();
     console.log("Collision time: ".concat((performance.now() - collisionTimeStart).toFixed(2), "ms"));
     initializeHeight(settings);
     scaleTimelineWidth();
     handleWindowResize();
+    firstSetup = false;
     console.log("Setup time: ".concat((performance.now() - setupTimeStart).toFixed(2), "ms"));
-    return this;
-  };
+  }
 
   function extractResources() {
     var res = {};
@@ -132,7 +160,9 @@
 
   function scaleTimelineWidth() {
     $('.day').css('width', unitWidth);
-    $('.month').css('width', unitWidth * timelineSubdivisions);
+    $('.month').each(function (index, item) {
+      $(item).css('width', unitWidth * $(item).data('days'));
+    });
   }
 
   function handleOverlap(rowIndex) {
@@ -257,60 +287,82 @@
   }
 
   function setupTimeline(settings) {
+    $timeline.empty();
+    $timeline.append("<div class=\"month-container\"></div><div class=\"day-container\"></div>");
     var daysHTML = '';
+    var monthsHTML = '';
 
     switch (settings.timeline.viewType) {
       case 'month':
         viewStartDate = settings.timeline.viewStart.startOf('month');
         timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
+        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
 
         for (var i = 0; i < timelineSubdivisions; i++) {
           daysHTML += "<div class=\"day\" data-index=\"".concat(i, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(i + 1, "</div>");
         }
 
+        monthsHTML = "<div class=\"month\" data-days=\"".concat(timelineSubdivisions, "\" style=\"width: ").concat(unitWidth * timelineSubdivisions, "\">").concat(settings.timeline.viewStart.format('MMMM'), "</div>");
         break;
 
       case 'three months':
         viewStartDate = settings.timeline.viewStart.subtract(2, 'month').startOf('month');
-        console.log(viewStartDate);
         var months = [viewStartDate, viewStartDate.add(1, 'month'), viewStartDate.add(2, 'month')];
-        console.log(months);
         timelineSubdivisions = months.map(function (month) {
           return month.daysInMonth();
         }).reduce(function (totalDays, daysInMonth) {
           return totalDays + daysInMonth;
         });
+        unitWidth = $timeline.outerWidth() / timelineSubdivisions; // for (let i = 0; i < timelineSubdivisions; i++) {
+        //     daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;"></div>`;
+        // }
 
-        for (var _i2 = 0; _i2 < timelineSubdivisions; _i2++) {
-          daysHTML += "<div class=\"day\" data-index=\"".concat(_i2, "\" style=\"width: ").concat(unitWidth, "px;\"></div>");
-        }
+        months.forEach(function (month) {
+          var daysInMonth = month.daysInMonth();
+
+          for (var _i2 = 0; _i2 < daysInMonth; _i2++) {
+            daysHTML += "<div class=\"day\" data-index=\"".concat(_i2, "\" style=\"width: ").concat(unitWidth, "px;\">").concat(_i2 + 1, "</div>");
+          }
+
+          monthsHTML += "<div class=\"month\" data-days=\"".concat(daysInMonth, "\" style=\"width: ").concat(unitWidth * daysInMonth, "px;\">").concat(month.format('MMMM'), "</div>");
+        });
 
       default:
         break;
     }
 
-    unitWidth = $timeline.outerWidth() / timelineSubdivisions;
-    $timeline.append("<div class=\"month\">".concat(settings.timeline.viewStart.format('MMMM'), "</div><div class=\"day-container\"></div>"));
     $('.day-container').append(daysHTML);
+    $('.month-container').append(monthsHTML);
     $('.day').css('width', unitWidth);
-    $('.month').css('width', unitWidth * timelineSubdivisions);
   }
 
   function setupGrid(settings) {
+    var hehe = performance.now(); // NOTE: Using vanilla js for this speeds it up a lot, but could cause memory (?)
+
+    var gridEl = document.getElementsByClassName('grid')[0];
+
+    while (gridEl.firstChild) {
+      gridEl.removeChild(gridEl.firstChild);
+    }
+
     $grid.append('<div class="content"></div>');
     $content = $grid.find('.content');
     var resourcesHTML = '';
     var gridHTML = '';
     var rowItemsHTML = '';
     $.each(resources, function (id, resource) {
-      resourcesHTML += "<div class=\"row resource\" data-row-id=\"".concat(id, "\">").concat(resource.name, "</div>");
+      if (firstSetup) resourcesHTML += "<div class=\"row resource\" data-row-id=\"".concat(id, "\">").concat(resource.name, "</div>");
       gridHTML += "<div class=\"row grid-row\" data-row-id=\"".concat(id, "\"></div>");
       rowItemsHTML += "<div class=\"row-items\" data-row-id=\"".concat(id, "\"></div>");
     });
-    $resources.append(resourcesHTML);
+    if (firstSetup) $resources.append(resourcesHTML);
     $grid.append(gridHTML);
     $content.append(rowItemsHTML);
+    if (!firstSetup) $('.row-items').empty();
+    console.log("setupGrid: ".concat((performance.now() - hehe).toFixed(2), "ms"));
+    var time = performance.now();
     setupItems(items);
+    console.log("setupItems: ".concat((performance.now() - time).toFixed(2), "ms"));
   }
 
   function initializeHeight(settings) {
@@ -332,8 +384,19 @@
 
 
   function buildItemHTML(item, id) {
-    var length = item.endDate.diff(item.startDate, 'days');
-    var visibleLength = length;
+    var length;
+    var visibleLength;
+
+    if (firstSetup) {
+      length = item.endDate.diff(item.startDate, 'days');
+      visibleLength = length;
+    } else {
+      length = item.state.length;
+      visibleLength = item.state.visibleLength;
+      y = item.state.y;
+      x = item.state.x;
+    }
+
     var y = $(".resource[data-row-id=\"".concat(item.resource.id, "\"]")).index();
     var x = item.startDate.diff(viewStartDate, 'days');
     var left = "".concat(x * unitWidth, "px");
@@ -346,6 +409,7 @@
       visibleLength = x + length > 0 ? x + length : 0;
 
       if (visibleLength === 0) {
+        // TODO: Store item state before returning
         return '';
       }
 
@@ -363,12 +427,11 @@
     }
 
     item.state.length = length;
-    item.state.visibleLength = visibleLength;
     item.state.x = x;
     item.state.y = y;
+    item.state.visibleLength = visibleLength;
     item.state.resourceId = item.resource.id;
-    var style = "left: ".concat(left, "; width: ").concat(pxLength, "; height: ").concat(unitHeight, "px;"); // let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${y}" data-length="${length}" data-visible-length=${visibleLength} data-resource-id="${item.resource.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
-
+    var style = "left: ".concat(left, "; width: ").concat(pxLength, "; height: ").concat(unitHeight, "px;");
     var html = "<div class=\"".concat(classes, "\" data-id=\"").concat(id, "\" style=\"").concat(style, "\">").concat(itemContent, "</div>");
     return html;
   }
@@ -486,7 +549,6 @@
     var parentTop = $parent.position().top;
     var parentBottom = parentTop + $(".resource[data-row-id=\"".concat($parent.data('row-id'), "\"]")).outerHeight();
     var itemTopInParentContext = $parent.position().top + $item.position().top;
-    console.log(ui.position.top);
 
     if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
       // Item is still in parent row

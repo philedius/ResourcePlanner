@@ -12,16 +12,19 @@
     let unitWidth;
     let unitHeight = 32;
     let resources;
-    let items;
+    let items = [];
     let itemsChanged = [];
     let settings;
     let lastInnerWidth;
     let dragLeft;
     let viewStartDate;
+    let firstSetup = true;
+    let detachedChildren;
 
     $.fn.ResourcePlanner = function (options) {
         $planner = this;
         $planner.empty();
+
         $planner.addClass('resource-planner');
         $planner.append('<div class="timeline-container"><div class="corner"></div><div class="timeline"></div><div class="scrollbar-filler"></div></div>');
         $planner.append('<div class="scroll-container"><div class="resources"></div><div class="grid"></div></div>');
@@ -62,36 +65,62 @@
             ]
         }, options);
 
+        initialize();
+        $('.corner').on('click', () => {
+            if (settings.timeline.viewType === 'three months') {
+                settings.timeline.viewType = 'month';
+            } else {
+                settings.timeline.viewType = 'three months';
+            }
+            initialize();
+            // if (detachedChildren) {
+            //     setTimeout(() => {
+            //         detachedChildren.remove();
+            //         console.log('children removed!');
+            //     }, 500);
+            // }
+
+        });
+        return this;
+    }
+
+    function initialize() {
         console.log('settings:\n', settings);
-        if (settings.data.items) {
-            items = settings.data.items;
-            items.forEach(item => {
-                item.state = {
-                    x: 0,
-                    y: 0,
-                    length: 0,
-                    visibleLength: 0,
-                    resourceId: 0,
-                    lastXPos: undefined,
-                    lastDroppedXPos: undefined
-                };
-            });
-            resources = extractResources();
-        } else {
-            console.error('Missing data for resource planner');
+        if (firstSetup) {
+            if (settings.data.items) {
+                console.log('YO');
+                items = settings.data.items;
+                items.forEach(item => {
+                    item.state = {
+                        x: 0,
+                        y: 0,
+                        length: 0,
+                        visibleLength: 0,
+                        resourceId: 0,
+                        lastXPos: undefined,
+                        lastDroppedXPos: undefined
+                    };
+                });
+                resources = extractResources();
+            } else {
+                console.error('Missing data for resource planner');
+            }
         }
         let setupTimeStart = performance.now();
+        let setupTimelineTimeStart = performance.now();
         setupTimeline(settings);
+        console.log(`Grid timeline: ${(performance.now() - setupTimelineTimeStart).toFixed(2)}ms`);
+        let setupGridTimeStart = performance.now();
         setupGrid(settings);
+        console.log(`Grid setup: ${(performance.now() - setupGridTimeStart).toFixed(2)}ms`);
         let collisionTimeStart = performance.now();
         handleOverlap();
         console.log(`Collision time: ${(performance.now() - collisionTimeStart).toFixed(2)}ms`);
         initializeHeight(settings);
         scaleTimelineWidth();
         handleWindowResize();
-
+        firstSetup = false;
         console.log(`Setup time: ${(performance.now() - setupTimeStart).toFixed(2)}ms`);
-        return this;
     }
 
     function extractResources() {
@@ -137,7 +166,9 @@
     // Scales the width of the timeline to the unitWidth.
     function scaleTimelineWidth() {
         $('.day').css('width', unitWidth);
-        $('.month').css('width', unitWidth * timelineSubdivisions);
+        $('.month').each((index, item) => {
+            $(item).css('width', unitWidth * $(item).data('days'));
+        })
     }
 
     function handleOverlap(rowIndex) {
@@ -253,36 +284,49 @@
     }
 
     function setupTimeline(settings) {
+        $timeline.empty();
+        $timeline.append(`<div class="month-container"></div><div class="day-container"></div>`);
         let daysHTML = '';
+        let monthsHTML = '';
         switch (settings.timeline.viewType) {
             case 'month':
                 viewStartDate = settings.timeline.viewStart.startOf('month');
                 timelineSubdivisions = settings.timeline.viewStart.daysInMonth();
+                unitWidth = $timeline.outerWidth() / timelineSubdivisions;
                 for (let i = 0; i < timelineSubdivisions; i++) {
                     daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;">${i + 1}</div>`;
                 }
+                monthsHTML = `<div class="month" data-days="${timelineSubdivisions}" style="width: ${unitWidth * timelineSubdivisions}">${settings.timeline.viewStart.format('MMMM')}</div>`;
                 break;
             case 'three months':
                 viewStartDate = settings.timeline.viewStart.subtract(2, 'month').startOf('month');
-                console.log(viewStartDate);
                 let months = [viewStartDate, viewStartDate.add(1, 'month'), viewStartDate.add(2, 'month')];
-                console.log(months);
                 timelineSubdivisions = months.map((month) => month.daysInMonth()).reduce((totalDays, daysInMonth) => totalDays + daysInMonth);
-                for (let i = 0; i < timelineSubdivisions; i++) {
-                    daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;"></div>`;
-                }
+                unitWidth = $timeline.outerWidth() / timelineSubdivisions;
+                // for (let i = 0; i < timelineSubdivisions; i++) {
+                //     daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;"></div>`;
+                // }
+                months.forEach((month) => {
+                    let daysInMonth = month.daysInMonth();
+                    for (let i = 0; i < daysInMonth; i++) {
+                        daysHTML += `<div class="day" data-index="${i}" style="width: ${unitWidth}px;">${i + 1}</div>`;
+                    }
+                    monthsHTML += `<div class="month" data-days="${daysInMonth}" style="width: ${unitWidth * daysInMonth}px;">${month.format('MMMM')}</div>`;
+                });
             default:
                 break;
         }
-        unitWidth = $timeline.outerWidth() / timelineSubdivisions;
-        $timeline.append(`<div class="month">${settings.timeline.viewStart.format('MMMM')}</div><div class="day-container"></div>`);
         
         $('.day-container').append(daysHTML);
+        $('.month-container').append(monthsHTML);
         $('.day').css('width', unitWidth);
-        $('.month').css('width', unitWidth * timelineSubdivisions);
     }
 
     function setupGrid(settings) {
+        let hehe = performance.now();
+        // NOTE: Using vanilla js for this speeds it up a lot, but could cause memory (?)
+        let gridEl = document.getElementsByClassName('grid')[0];
+        while (gridEl.firstChild) gridEl.removeChild(gridEl.firstChild);
         $grid.append('<div class="content"></div>');
         $content = $grid.find('.content');
         let resourcesHTML = '';
@@ -290,16 +334,19 @@
         let rowItemsHTML = '';
         
         $.each(resources, (id, resource) => {
-            resourcesHTML += `<div class="row resource" data-row-id="${id}">${resource.name}</div>`;
+            if (firstSetup) resourcesHTML += `<div class="row resource" data-row-id="${id}">${resource.name}</div>`;
             gridHTML += `<div class="row grid-row" data-row-id="${id}"></div>`;
             rowItemsHTML += `<div class="row-items" data-row-id="${id}"></div>`;
         });
-
-        $resources.append(resourcesHTML);
+        if (firstSetup) $resources.append(resourcesHTML);
         $grid.append(gridHTML);
         $content.append(rowItemsHTML);
-
+        
+        if (!firstSetup) $('.row-items').empty();
+        console.log(`setupGrid: ${(performance.now() - hehe).toFixed(2)}ms`);    
+        let time = performance.now();
         setupItems(items);
+        console.log(`setupItems: ${(performance.now() - time).toFixed(2)}ms`);        
     }
 
     function initializeHeight(settings) {
@@ -321,8 +368,19 @@
     
     // TODO: Change function name and split up for semantics
     function buildItemHTML(item, id) {
-        let length = item.endDate.diff(item.startDate, 'days');
-        let visibleLength = length;
+        let length;
+        let visibleLength;
+        if (firstSetup) {
+            length = item.endDate.diff(item.startDate, 'days');
+            visibleLength = length;
+            
+        } else {
+            length = item.state.length;
+            visibleLength = item.state.visibleLength;
+            y = item.state.y;
+            x = item.state.x;
+            
+        }
         let y = $(`.resource[data-row-id="${item.resource.id}"]`).index();
         let x = item.startDate.diff(viewStartDate, 'days');
         let left = `${x * unitWidth}px`;
@@ -333,6 +391,7 @@
         if (x < 0) {
             visibleLength = x + length > 0 ? x + length : 0;
             if (visibleLength === 0) {
+                // TODO: Store item state before returning
                 return '';
             }
             left = 0;
@@ -347,12 +406,11 @@
             itemContent = `<div class="item-content" style="${contentStyle}"><span class="emoji out-of-bounds-right-emoji">👉</span>${item.title}</div>`;
         }
         item.state.length = length;
-        item.state.visibleLength = visibleLength;
         item.state.x = x;
         item.state.y = y;
+        item.state.visibleLength = visibleLength;
         item.state.resourceId = item.resource.id;
         let style = `left: ${left}; width: ${pxLength}; height: ${unitHeight}px;`;
-        // let html = `<div class="${classes}" data-x="${item.startDate.date() - 1}" data-y="${y}" data-length="${length}" data-visible-length=${visibleLength} data-resource-id="${item.resource.id}" data-id="${id}" style="${style}">${itemContent}</div>`;
         let html = `<div class="${classes}" data-id="${id}" style="${style}">${itemContent}</div>`;
         return html;
     }
@@ -475,7 +533,6 @@
         let parentTop = $parent.position().top;
         let parentBottom = parentTop + $(`.resource[data-row-id="${$parent.data('row-id')}"]`).outerHeight();
         let itemTopInParentContext = $parent.position().top + $item.position().top;
-        console.log(ui.position.top);
         if (itemTopInParentContext >= parentTop && itemTopInParentContext < parentBottom) {
             // Item is still in parent row
             $item.css('top', 0);
